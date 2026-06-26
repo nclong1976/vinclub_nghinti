@@ -1,0 +1,161 @@
+// firestore.rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────────────────────────────────────────
+    // Helper Functions
+    // ───────────────────────────────────────────
+
+    // Kiểm tra user đã đăng nhập
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Kiểm tra chính chủ
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Kiểm tra là admin (dựa vào tài liệu trong Firestore hoặc hardcode)
+    function isAdmin() {
+      return isAuthenticated() &&
+             (request.auth.uid == 'anhleo4444' ||
+              request.auth.uid == 'profile' ||
+              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'finance_admin' ||
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'support_admin')));
+    }
+
+    // Kiểm tra là super_admin
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+             (request.auth.uid == 'anhleo4444' ||
+              request.auth.uid == 'profile' ||
+              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'));
+    }
+
+    // ───────────────────────────────────────────
+    // Users Collection
+    // ───────────────────────────────────────────
+    match /users/{userId} {
+
+      // Player chỉ đọc được profile của chính mình
+      // Admin đọc được tất cả
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Cho phép người dùng tự khởi tạo profile của mình hoặc admin tạo mới
+      allow create: if isOwner(userId) || isAdmin();
+
+      // Player chỉ được sửa các field của chính mình (ngoại trừ role để tránh privilege escalation)
+      // Admin được sửa tất cả
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        (!('role' in request.resource.data.diff(resource.data).affectedKeys()) ||
+         (resource.data.role == request.resource.data.role))
+      );
+
+      // Chỉ super_admin mới xóa được user
+      allow delete: if isSuperAdmin();
+
+      // ─────────────────────────────────────────
+      // Transactions Sub-Collection
+      // ─────────────────────────────────────────
+      match /transactions/{transactionId} {
+
+        // Player đọc giao dịch của mình, admin đọc tất cả
+        allow read: if isOwner(userId) || isAdmin();
+
+        // Cho phép Player tự ghi giao dịch, admin ghi tất cả
+        allow create, update: if isOwner(userId) || isAdmin();
+
+        // Không cho xóa giao dịch
+        allow delete: if false;
+      }
+    }
+
+    // ───────────────────────────────────────────
+    // Projects Collection
+    // ───────────────────────────────────────────
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if true; // Cần thiết để thực hiện client-side seeding khi mount ứng dụng
+    }
+
+    // ───────────────────────────────────────────
+    // Stocks Collection
+    // ───────────────────────────────────────────
+    match /stocks/{symbol} {
+      allow read: if true;
+      allow write: if true; // Cần thiết để thực hiện client-side seeding khi mount ứng dụng
+    }
+
+    // ───────────────────────────────────────────
+    // Casino Games Collection
+    // ───────────────────────────────────────────
+    match /casinoGames/{gameId} {
+      allow read: if true;
+      allow write: if true; // Cần thiết để thực hiện client-side seeding khi mount ứng dụng
+    }
+
+    // ───────────────────────────────────────────
+    // Articles Collection
+    // ───────────────────────────────────────────
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if true; // Cần thiết để thực hiện client-side seeding khi mount ứng dụng
+    }
+
+    // ───────────────────────────────────────────
+    // Notifications Collection
+    // ───────────────────────────────────────────
+    match /notifications/{notificationId} {
+      allow read: if true;
+      allow write: if true; // Cần thiết để thực hiện client-side seeding khi mount ứng dụng
+    }
+
+    // ───────────────────────────────────────────
+    // Chat Messages Collection
+    // ───────────────────────────────────────────
+    match /chat_messages/{messageId} {
+      allow read: if isAdmin() || (isAuthenticated() && (resource.data.conversation_id == request.auth.token.email || resource.data.conversation_id == request.auth.uid));
+      allow create: if isAdmin() || (isAuthenticated() && (request.resource.data.conversation_id == request.auth.token.email || request.resource.data.conversation_id == request.auth.uid));
+      allow update: if isAdmin() || (isAuthenticated() && (resource.data.conversation_id == request.auth.token.email || resource.data.conversation_id == request.auth.uid));
+      allow delete: if isAdmin();
+    }
+
+    // ───────────────────────────────────────────
+    // Audit Logs (chỉ admin ghi, admin đọc)
+    // ───────────────────────────────────────────
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Logs không bao giờ bị sửa/xóa
+    }
+
+    // ───────────────────────────────────────────
+    // Config / System / Settings Collections
+    // ───────────────────────────────────────────
+    match /config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /system/{systemId} {
+      allow read, write: if true;
+    }
+
+    match /settings/{settingsId} {
+      allow read, write: if true;
+    }
+
+    // Chặn tất cả các path khác
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

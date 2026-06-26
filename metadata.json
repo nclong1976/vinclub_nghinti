@@ -1,0 +1,6 @@
+{
+  "name": "Vinclub UI Clone",
+  "description": "A premium club mobile app UI with highly customizable and easily swappable icons/images.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

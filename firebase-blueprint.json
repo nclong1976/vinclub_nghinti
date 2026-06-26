@@ -1,0 +1,82 @@
+{
+  "collections": [
+    {
+      "name": "projects",
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "imageUrl", "type": "string" },
+        { "name": "interestRate", "type": "string" },
+        { "name": "duration", "type": "string" },
+        { "name": "minAmount", "type": "string" },
+        { "name": "scale", "type": "string" },
+        { "name": "progress", "type": "number" },
+        { "name": "category", "type": "string" },
+        { "name": "durationDays", "type": "number" },
+        { "name": "minInvestAmount", "type": "number" },
+        { "name": "interestRateValue", "type": "number" }
+      ],
+      "rules": "allow read: if true; allow write: if request.auth != null;"
+    },
+    {
+      "name": "stocks",
+      "fields": [
+        { "name": "symbol", "type": "string" },
+        { "name": "name", "type": "string" },
+        { "name": "price", "type": "number" },
+        { "name": "change", "type": "number" },
+        { "name": "changePercent", "type": "number" },
+        { "name": "volume", "type": "string" }
+      ],
+      "rules": "allow read: if true; allow write: if request.auth != null;"
+    },
+    {
+      "name": "casinoGames",
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "imageUrl", "type": "string" }
+      ],
+      "rules": "allow read: if true; allow write: if request.auth != null;"
+    },
+    {
+      "name": "chat_messages",
+      "fields": [
+        { "name": "conversation_id", "type": "string" },
+        { "name": "sender_email", "type": "string" },
+        { "name": "sender_role", "type": "string" },
+        { "name": "content", "type": "string" },
+        { "name": "is_read", "type": "boolean" },
+        { "name": "createdAt", "type": "timestamp" }
+      ],
+      "rules": "allow read, write: if true;"
+    },
+    {
+      "name": "articles",
+      "fields": [
+        { "name": "category", "type": "string" },
+        { "name": "title", "type": "string" },
+        { "name": "excerpt", "type": "string" },
+        { "name": "content", "type": "string" },
+        { "name": "imageUrl", "type": "string" },
+        { "name": "status", "type": "string" },
+        { "name": "date", "type": "string" },
+        { "name": "author", "type": "string" },
+        { "name": "isPinned", "type": "boolean" },
+        { "name": "createdAt", "type": "number" }
+      ],
+      "rules": "allow read, write: if true;"
+    },
+    {
+      "name": "audit_logs",
+      "fields": [
+        { "name": "action", "type": "string" },
+        { "name": "adminName", "type": "string" },
+        { "name": "adminId", "type": "string" },
+        { "name": "targetUserId", "type": "string" },
+        { "name": "oldValue", "type": "string" },
+        { "name": "newValue", "type": "string" },
+        { "name": "timestamp", "type": "timestamp" }
+      ],
+      "rules": "allow read, create: if isAdmin(); allow update, delete: if false;"
+    }
+  ]
+}

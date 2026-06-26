@@ -1,0 +1,1741 @@
+import React, { useState, useEffect, useContext, useMemo } from 'react';
+import { 
+  ChevronLeft, Users, DollarSign, TrendingUp, CheckCircle, XCircle, ShieldAlert,
+  Search, Lock, Unlock, ArrowUpRight, CreditCard, Filter, FileText, Bell, MessageSquare,
+  Image as ImageIcon, Settings, History, ExternalLink, KeyRound
+} from 'lucide-react';
+import { UserContext } from './UserContext';
+import { db, auth } from '../firebase';
+import { collection, query, onSnapshot, updateDoc, doc, getDoc, where, orderBy, addDoc, serverTimestamp, setDoc, runTransaction } from 'firebase/firestore';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+const chartData = [
+  { name: 'Vinpearl', value: 45, color: '#D4AF37' },
+  { name: 'VinFast', value: 25, color: '#3b82f6' },
+  { name: 'Vinhomes', value: 20, color: '#10b981' },
+  { name: 'Casino', value: 10, color: '#f43f5e' },
+];
+
+export default function AdminConsole({ onBack }: { onBack: () => void }) {
+  const userCtx = useContext(UserContext);
+  const { cmsBanners, updateCmsBanners, cmsNews, updateCmsNews, cmsVinfast, updateCmsVinfast } = userCtx;
+  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'users' | 'projects' | 'cms' | 'notifications' | 'support' | 'audit_logs'>('overview');
+
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [cmsSubTab, setCmsSubTab] = useState<'news' | 'banners' | 'vinfast'>('news');
+  const [isAddingNews, setIsAddingNews] = useState(false);
+  const [newsForm, setNewsForm] = useState<any>({});
+  const [localVinfast, setLocalVinfast] = useState<any[]>(cmsVinfast || []);
+  
+  useEffect(() => {
+    setLocalVinfast(cmsVinfast || []);
+  }, [cmsVinfast]);
+
+  const saveVinfastChanges = () => {
+    updateCmsVinfast(localVinfast);
+    alert('Đã lưu thay đổi thông số xe!');
+  };
+  
+  const handleApproveTransaction = async (
+    transaction: any,
+    userId: string
+  ) => {
+    if (processingIds.has(transaction.id)) return;
+
+    setProcessingIds(prev => new Set(prev).add(transaction.id));
+
+    try {
+      const userRef = doc(db, 'users', userId);
+
+      await runTransaction(db, async (firestoreTx) => {
+        const userSnap = await firestoreTx.get(userRef);
+
+        if (!userSnap.exists()) {
+          throw new Error('Người dùng không tồn tại.');
+        }
+
+        const userData = userSnap.data();
+        const currentTransactions = userData.transactions || [];
+        
+        const txIndex = currentTransactions.findIndex((t: any) => t.id === transaction.id);
+        if (txIndex === -1) {
+          throw new Error('Giao dịch không tồn tại.');
+        }
+
+        const txData = currentTransactions[txIndex];
+        if (txData.status !== 'Đang xử lý') {
+          throw new Error(`Giao dịch này đã được xử lý (${txData.status}).`);
+        }
+
+        const currentBalance = userData.balance ?? 0;
+        const amount = txData.amount;
+        let newBalance = currentBalance;
+
+        if (txData.type === 'deposit') {
+          newBalance = currentBalance + amount;
+        }
+
+        const updatedTransactions = [...currentTransactions];
+        updatedTransactions[txIndex] = {
+          ...txData,
+          status: 'Thành công',
+          processedAt: new Date().toLocaleString('vi-VN'),
+          processedBy: auth.currentUser?.uid ?? 'unknown',
+        };
+
+        const updates: any = {
+          transactions: updatedTransactions,
+          balance: newBalance
+        };
+
+        if (txData.type === 'deposit') {
+          const updatedDeposits = (userData.depositsList || []).map((dep: any) => {
+            if (dep.txId === transaction.id || (dep.amount === amount && dep.status === 'Đang xử lý')) {
+              return { ...dep, status: 'Thành công' };
+            }
+            return dep;
+          });
+          updates.depositsList = updatedDeposits;
+        }
+
+        firestoreTx.update(userRef, updates);
+      });
+
+      await addAuditLog(`Phê duyệt giao dịch ${transaction.type === 'deposit' ? 'nạp' : 'rút'} ${transaction.amount.toLocaleString('vi-VN')}đ cho user ${userId}`, userId, 'Đang xử lý', 'Thành công');
+      console.log(`✅ Giao dịch ${transaction.id} đã được phê duyệt.`);
+      alert(`Giao dịch ${transaction.id} đã được phê duyệt.`);
+    } catch (error: any) {
+      alert(`Lỗi phê duyệt: ${error.message}`);
+      console.error('handleApproveTransaction error:', error);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(transaction.id);
+        return next;
+      });
+    }
+  };
+
+  const handleRejectTransaction = async (
+    transaction: any,
+    userId: string
+  ) => {
+    if (processingIds.has(transaction.id)) return;
+
+    const reason = window.prompt(`Nhập lý do từ chối giao dịch ${transaction.id}:`);
+    if (reason === null) return;
+
+    setProcessingIds(prev => new Set(prev).add(transaction.id));
+
+    try {
+      const userRef = doc(db, 'users', userId);
+
+      await runTransaction(db, async (firestoreTx) => {
+        const userSnap = await firestoreTx.get(userRef);
+
+        if (!userSnap.exists()) {
+          throw new Error('Người dùng không tồn tại.');
+        }
+
+        const userData = userSnap.data();
+        const currentTransactions = userData.transactions || [];
+        
+        const txIndex = currentTransactions.findIndex((t: any) => t.id === transaction.id);
+        if (txIndex === -1) {
+          throw new Error('Giao dịch không tồn tại.');
+        }
+
+        const txData = currentTransactions[txIndex];
+        if (txData.status !== 'Đang xử lý') {
+          throw new Error(`Giao dịch này đã được xử lý (${txData.status}).`);
+        }
+
+        const currentBalance = userData.balance ?? 0;
+        const amount = txData.amount;
+        let newBalance = currentBalance;
+
+        if (txData.type === 'withdraw' || txData.type === 'invest') {
+          newBalance = currentBalance + amount;
+        }
+
+        const updatedTransactions = [...currentTransactions];
+        updatedTransactions[txIndex] = {
+          ...txData,
+          status: 'Thất bại',
+          reason: reason || 'Giao dịch không hợp lệ',
+          processedAt: new Date().toLocaleString('vi-VN'),
+          processedBy: auth.currentUser?.uid ?? 'unknown',
+        };
+
+        const updates: any = {
+          transactions: updatedTransactions,
+          balance: newBalance
+        };
+
+        if (txData.type === 'deposit') {
+          const updatedDeposits = (userData.depositsList || []).map((dep: any) => {
+            if (dep.txId === transaction.id || (dep.amount === amount && dep.status === 'Đang xử lý')) {
+              return { ...dep, status: 'Thất bại' };
+            }
+            return dep;
+          });
+          updates.depositsList = updatedDeposits;
+        }
+
+        firestoreTx.update(userRef, updates);
+      });
+
+      await addAuditLog(`Từ chối giao dịch ${transaction.type === 'deposit' ? 'nạp' : 'rút'} ${transaction.amount.toLocaleString('vi-VN')}đ cho user ${userId}. Lý do: ${reason || 'Không hợp lệ'}`, userId, 'Đang xử lý', 'Thất bại');
+      console.log(`❌ Giao dịch ${transaction.id} đã bị từ chối.`);
+      alert(`Giao dịch ${transaction.id} đã bị từ chối.`);
+    } catch (error: any) {
+      alert(`Lỗi từ chối: ${error.message}`);
+      console.error('handleRejectTransaction error:', error);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(transaction.id);
+        return next;
+      });
+    }
+  };
+  
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  
+  useEffect(() => {
+    const q = query(collection(db, 'users'));
+    const unsub = onSnapshot(q, (snap) => {
+      const users: any[] = [];
+      snap.forEach(d => {
+        users.push({ id: d.id, ...d.data() });
+      });
+      setAllUsers(users);
+      setLoadingUsers(false);
+    }, (error) => {
+      console.error("Error fetching users:", error);
+      setLoadingUsers(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const [usersTabFilter, setUsersTabFilter] = useState<'pending' | 'verified' | 'locked'>('pending');
+
+  const { pendingKycUsers, verifiedUsers, lockedUsers } = useMemo(() => {
+    const pending: any[] = [];
+    const verified: any[] = [];
+    const locked: any[] = [];
+    
+    allUsers.forEach(u => {
+      const matchSearch = (u.displayName?.toLowerCase() || '').includes(globalSearch.toLowerCase()) || 
+                          (u.phoneNumber?.toLowerCase() || '').includes(globalSearch.toLowerCase()) ||
+                          (u.id?.toLowerCase() || '').includes(globalSearch.toLowerCase());
+      if (matchSearch) {
+        if (u.isLocked) {
+          locked.push(u);
+        } else if (u.isIdentityVerified) {
+          verified.push(u);
+        } else if (u.kycStatus === 'pending' || u.cccdFrontImage || u.cccdBackImage) {
+          pending.push(u);
+        }
+      }
+    });
+    return { pendingKycUsers: pending, verifiedUsers: verified, lockedUsers: locked };
+  }, [allUsers, globalSearch]);
+
+  const displayedUsers = useMemo(() => {
+    if (usersTabFilter === 'pending') return pendingKycUsers;
+    if (usersTabFilter === 'verified') return verifiedUsers;
+    return lockedUsers;
+  }, [usersTabFilter, pendingKycUsers, verifiedUsers, lockedUsers]);
+
+  const activeUsersCount = allUsers.length;
+  const totalInvestment = allUsers.reduce((sum, u) => sum + (u.balance || 0), 0);
+
+  const dynamicChartData = useMemo(() => {
+    return [
+      { name: 'Vinpearl', value: totalInvestment * 0.45, color: '#D4AF37' },
+      { name: 'VinFast', value: totalInvestment * 0.25, color: '#3b82f6' },
+      { name: 'Vinhomes', value: totalInvestment * 0.20, color: '#10b981' },
+      { name: 'Casino', value: totalInvestment * 0.10, color: '#f43f5e' },
+    ];
+  }, [totalInvestment]);
+  
+  const [financeTabFilter, setFinanceTabFilter] = useState<'pending' | 'success' | 'rejected'>('pending');
+
+  const { pendingTransactions, successTransactions, rejectedTransactions } = useMemo(() => {
+    const pending: any[] = [];
+    const success: any[] = [];
+    const rejected: any[] = [];
+    allUsers.forEach(u => {
+      if (u.transactions) {
+        u.transactions.forEach((t: any) => {
+          const tx = { ...t, userId: u.id, userName: u.displayName || u.id, userPhone: u.phoneNumber || '', userBalance: u.balance || 0 };
+          if (t.status === 'Đang xử lý') {
+            pending.push(tx);
+          } else if (t.status === 'Thành công') {
+            success.push(tx);
+          } else if (t.status === 'Thất bại') {
+            rejected.push(tx);
+          }
+        });
+      }
+    });
+    const sortFn = (a: any, b: any) => {
+      if (!b.date || !a.date) return 0;
+      return b.date.localeCompare(a.date);
+    };
+    pending.sort(sortFn);
+    success.sort(sortFn);
+    rejected.sort(sortFn);
+    return { pendingTransactions: pending, successTransactions: success, rejectedTransactions: rejected };
+  }, [allUsers]);
+
+  const displayedTransactions = useMemo(() => {
+    if (financeTabFilter === 'pending') return pendingTransactions;
+    if (financeTabFilter === 'success') return successTransactions;
+    return rejectedTransactions;
+  }, [financeTabFilter, pendingTransactions, successTransactions, rejectedTransactions]);
+
+  const navItems = [
+    { id: 'overview', icon: TrendingUp, label: 'Tổng quan' },
+    { id: 'finance', icon: DollarSign, label: 'Duyệt Nạp/Rút', badge: (loadingUsers || activeTab === 'finance') ? 0 : pendingTransactions.length },
+    { id: 'users', icon: Users, label: 'Người dùng & KYC' },
+    { id: 'projects', icon: FileText, label: 'Điều hành dự án' },
+    { id: 'cms', icon: FileText, label: 'Content CMS' },
+    { id: 'notifications', icon: Bell, label: 'Thông báo Push' },
+    { id: 'support', icon: MessageSquare, label: 'Hỗ trợ trực tuyến' },
+    ...((userCtx.role === 'admin' || userCtx.role === 'super_admin') ? [
+      { id: 'audit_logs', icon: ShieldAlert, label: 'Audit Logs' }
+    ] : [])
+  ];
+
+  if (userCtx.role !== 'admin' && userCtx.role !== 'super_admin') {
+    return (
+      <div className="min-h-screen bg-[#000D1A] flex flex-col items-center justify-center text-[#D4AF37] font-['Plus_Jakarta_Sans']">
+        <ShieldAlert className="w-16 h-16 mb-4 text-red-500" />
+        <h1 className="text-2xl font-bold mb-2 text-white">Truy cập bị từ chối</h1>
+        <p className="text-[#A0B0C0] mb-8">Bạn không có quyền truy cập vào Phân hệ Quản trị Viên.</p>
+        <button onClick={onBack} className="bg-[#D4AF37] text-[#000D1A] px-6 py-2 rounded font-bold hover:bg-[#b5952f] transition-colors">
+          Quay lại trang chủ
+        </button>
+      </div>
+    );
+  }
+
+
+  const rejectTransaction = async (tx: any) => {
+    console.log('Attempting to reject transaction:', tx);
+    const reason = window.prompt(`Nhập lý do từ chối giao dịch ${tx.id}:`);
+    if (reason === null) return;
+    try {
+      const userDocRef = doc(db, 'users', tx.userId);
+      const userSnap = await getDoc(userDocRef);
+      if (!userSnap.exists()) {
+        console.error('User not found:', tx.userId);
+        alert('Lỗi: Không tìm thấy người dùng!');
+        return;
+      }
+      const userData = userSnap.data();
+      
+      const newTransactions = (userData.transactions || []).map((t: any) => {
+        if (t.id === tx.id) return { ...t, status: 'Thất bại', reason: reason || 'Giao dịch không hợp lệ' };
+        return t;
+      });
+
+      let newBalance = userData.balance || 0;
+      if (tx.type === 'withdraw' || tx.type === 'invest') {
+        newBalance += tx.amount;
+      }
+
+      const updates: any = {
+        transactions: newTransactions,
+        balance: newBalance
+      };
+
+      if (tx.type === 'deposit') {
+        const updatedDeposits = (userData.depositsList || []).map((dep: any) => {
+          if (dep.txId === tx.id || (dep.amount === tx.amount && dep.status === 'Đang xử lý')) {
+            return { ...dep, status: 'Thất bại' };
+          }
+          return dep;
+        });
+        updates.depositsList = updatedDeposits;
+      }
+
+      await updateDoc(userDocRef, updates);
+      alert('Đã từ chối giao dịch thành công.');
+    } catch (e) {
+      console.error('Error rejecting transaction:', e);
+      alert(`Lỗi khi từ chối (có thể do mất kết nối mạng): ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
+  };
+
+  const [kycUserModal, setKycUserModal] = useState<any | null>(null);
+  const [selectedTxDetails, setSelectedTxDetails] = useState<any | null>(null);
+
+  const approveKyc = async (userId: string) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { 
+        isIdentityVerified: true,
+        kycStatus: 'verified',
+        kycRejectReason: null
+      });
+      await addAuditLog(`Phê duyệt KYC cho user ${userId}`, userId, 'pending', 'verified');
+      alert('Đã xác thực KYC thành công.');
+      setKycUserModal(null);
+    } catch (e) {
+      console.error(e);
+      alert('Lỗi xác thực KYC.');
+    }
+  };
+
+  const rejectKyc = async (userId: string) => {
+    const reason = window.prompt('Nhập lý do từ chối KYC:');
+    if (reason === null) return;
+    
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { 
+        isIdentityVerified: false,
+        kycStatus: 'rejected',
+        kycRejectReason: reason || 'Thông tin không hợp lệ'
+      });
+      await addAuditLog(`Từ chối KYC cho user ${userId}. Lý do: ${reason || 'Thông tin không hợp lệ'}`, userId, 'pending', 'rejected');
+      alert('Đã từ chối KYC.');
+      setKycUserModal(null);
+    } catch (e) {
+      console.error(e);
+      alert('Lỗi từ chối KYC.');
+    }
+  };
+
+  const toggleUserLock = async (userId: string, isLocked: boolean) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { isLocked: !isLocked });
+      await addAuditLog(`${!isLocked ? 'Khóa' : 'Mở khóa'} tài khoản user ${userId}`, userId, isLocked ? 'locked' : 'active', !isLocked ? 'locked' : 'active');
+      alert(!isLocked ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const resetUserPassword = async (userId: string) => {
+    const newPass = window.prompt('Nhập mật khẩu mới cho người dùng này:');
+    if (!newPass) {
+      if (newPass !== null) alert('Mật khẩu không được để trống.');
+      return;
+    }
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { password: newPass });
+      await addAuditLog(`Reset mật khẩu cho user ${userId}`, userId, '******', 'Mật khẩu mới đã được đặt');
+      alert(`Đã reset mật khẩu cho user ${userId} thành công.`);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Lỗi reset mật khẩu: ${e.message}`);
+    }
+  };
+
+  const updateUserRole = async (userId: string, oldRole: string, newRole: string) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { role: newRole });
+      await addAuditLog(`Thay đổi vai trò của user ${userId} từ ${oldRole} thành ${newRole}`, userId, oldRole, newRole);
+      alert(`Đã cập nhật vai trò của user ${userId} thành ${newRole}.`);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Lỗi thay đổi vai trò: ${e.message}`);
+    }
+  };
+
+  const handleUpdateProjectStatus = async (projectId: string, newStatus: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED', projectTitle: string) => {
+    try {
+      await userCtx.updateProjectStatus(projectId, newStatus);
+      await addAuditLog(`Cập nhật trạng thái dự án "${projectTitle}" thành ${newStatus}`);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const [selectedChatUser, setSelectedChatUser] = useState<any | null>(null);
+  const [adminChatMessages, setAdminChatMessages] = useState<any[]>([]);
+  const [adminChatText, setAdminChatText] = useState('');
+  const chatEndRef = React.useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedChatUser) return;
+    const q = query(
+      collection(db, 'chat_messages'),
+      where('conversation_id', '==', selectedChatUser.id),
+      orderBy('createdAt', 'asc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const msgs = snap.docs.map(d => {
+        const data = d.data();
+        let timeStr = '';
+        if (data.createdAt) {
+          try {
+            timeStr = new Date((data.createdAt as any).seconds * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          } catch (e) {
+            timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          }
+        }
+        return { id: d.id, ...data, timeFormatted: timeStr };
+      });
+      setAdminChatMessages(msgs);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    });
+    return () => unsub();
+  }, [selectedChatUser]);
+
+  const handleSendAdminMessage = async () => {
+    if (!adminChatText.trim() || !selectedChatUser) return;
+    try {
+      const text = adminChatText;
+      setAdminChatText('');
+      await addDoc(collection(db, 'chat_messages'), {
+        conversation_id: selectedChatUser.id,
+        sender_email: 'admin',
+        sender_role: 'admin',
+        content: text,
+        is_read: false,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const [tickerInput, setTickerInput] = useState('');
+  const [tickerMessages, setTickerMessages] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'ticker'), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().messages) {
+        setTickerMessages(docSnap.data().messages);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (userCtx.role !== 'admin' && userCtx.role !== 'super_admin') return;
+
+    const q = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const logs: any[] = [];
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        let timeStr = '';
+        if (data.timestamp) {
+          try {
+            timeStr = new Date((data.timestamp as any).seconds * 1000).toLocaleString('vi-VN');
+          } catch (e) {
+            timeStr = new Date().toLocaleString('vi-VN');
+          }
+        } else if (data.time) {
+          timeStr = data.time;
+        }
+        logs.push({ id: docSnap.id, ...data, timeFormatted: timeStr });
+      });
+      setAuditLogs(logs);
+    }, (error) => {
+      console.error("Error fetching audit logs:", error);
+    });
+    return () => unsub();
+  }, [userCtx.role]);
+
+  const addAuditLog = async (action: string, targetUserId?: string, oldValue?: string, newValue?: string) => {
+    try {
+      await addDoc(collection(db, 'audit_logs'), {
+        action,
+        adminName: userCtx.displayName || auth.currentUser?.email || 'Admin',
+        adminId: auth.currentUser?.uid || 'unknown',
+        timestamp: serverTimestamp(),
+        targetUserId: targetUserId || '',
+        oldValue: oldValue || '',
+        newValue: newValue || '',
+      });
+    } catch (e) {
+      console.error("Error creating audit log in Firestore:", e);
+    }
+  };
+
+  const handlePushTicker = async () => {
+    if (!tickerInput.trim()) return;
+    try {
+      await setDoc(doc(db, 'settings', 'ticker'), {
+        messages: [tickerInput.trim(), ...tickerMessages].slice(0, 5)
+      });
+      setTickerInput('');
+      alert('Đã cập nhật Ticker Banner.');
+    } catch (e) {
+      console.error(e);
+      alert('Lỗi cập nhật Ticker.');
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[100dvh] bg-[#000D1A] text-zinc-100 font-['Plus_Jakarta_Sans'] selection:bg-[#D4AF37] selection:text-[#000D1A]">
+      <header className="bg-[#001F3F] border-b border-[#D4AF37]/20 px-6 py-4 flex items-center justify-between shrink-0 shadow-md relative z-10">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="text-[#D4AF37] hover:text-white transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D4AF37]/30 hover:bg-[#D4AF37]/10">
+            <ChevronLeft className="w-5 h-5" />
+            <span className="font-bold text-sm hidden sm:inline">Thoát Quyền Admin</span>
+            <span className="font-bold text-sm sm:hidden">Thoát</span>
+          </button>
+          <div className="h-6 w-px bg-zinc-700 hidden sm:block"></div>
+          <h1 className="text-lg font-black text-[#D4AF37] uppercase tracking-wider hidden sm:block">VinClub Control</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="relative hidden md:block">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm..." 
+              value={globalSearch}
+              onChange={e => setGlobalSearch(e.target.value)}
+              className="bg-[#000D1A] border border-zinc-700 rounded-lg pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors w-48"
+            />
+          </div>
+          <div className="flex items-center gap-2 bg-[#000D1A] px-3 py-1.5 rounded-lg border border-[#D4AF37]/30">
+            <ShieldAlert className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-sm font-bold text-[#D4AF37]">Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="w-20 md:w-64 bg-[#001F3F] border-r border-[#D4AF37]/20 flex flex-col py-6 shrink-0 transition-all">
+          <nav className="flex flex-col gap-3 px-3 md:px-4">
+            {navItems.map(item => (
+              <button 
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3.5 rounded-xl transition-all relative overflow-hidden group ${activeTab === item.id ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'text-zinc-400 hover:bg-[#000D1A] hover:text-white'}`}
+              >
+                {activeTab === item.id && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12 animate-[shimmer_3s_infinite] pointer-events-none"></div>
+                )}
+                <item.icon className="w-5 h-5 shrink-0 relative z-10" />
+                <span className="font-bold hidden md:block relative z-10">{item.label}</span>
+                {item.badge && item.badge > 0 ? (
+                  <span className="absolute top-2 right-2 md:static ml-auto bg-rose-500 text-white text-[10px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 rounded-full relative z-10 shadow-[0_0_10px_rgba(244,63,94,0.5)]">{item.badge}</span>
+                ) : null}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#000D1A]">
+          {activeTab === 'overview' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <h2 className="text-2xl font-bold text-white border-b border-zinc-800 pb-4 flex items-center gap-2">
+                Phòng điều hành số <span className="text-[#D4AF37] font-normal text-lg">/ Dashboard</span>
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-[#001F3F] border border-[#D4AF37]/30 p-6 rounded-2xl flex flex-col shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Users className="w-16 h-16 text-white" />
+                  </div>
+                  <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">Active Users</span>
+                  <div className="flex items-end gap-3 z-10">
+                    <span className="text-5xl font-black text-white">{activeUsersCount}</span>
+                    <span className="text-[#D4AF37] text-sm font-bold flex items-center mb-1 bg-[#D4AF37]/10 px-2 py-0.5 rounded"><ArrowUpRight className="w-4 h-4 mr-1"/> 12%</span>
+                  </div>
+                </div>
+                <div className="bg-[#001F3F] border border-[#D4AF37]/30 p-6 rounded-2xl flex flex-col shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <DollarSign className="w-16 h-16 text-[#D4AF37]" />
+                  </div>
+                  <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">Tổng Dòng Vốn</span>
+                  <div className="flex items-end gap-3 z-10">
+                    <span className="text-4xl font-black text-[#D4AF37]">{totalInvestment.toLocaleString('vi-VN')}đ</span>
+                  </div>
+                </div>
+                <div className="bg-[#001F3F] border border-[#D4AF37]/30 p-6 rounded-2xl flex flex-col shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <CheckCircle className="w-16 h-16 text-green-500" />
+                  </div>
+                  <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">System Uptime</span>
+                  <div className="flex items-end gap-3 z-10">
+                    <span className="text-5xl font-black text-green-400">99.9%</span>
+                    <span className="text-green-400/50 text-sm font-bold mb-1 tracking-wide">ONLINE</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#001F3F] border border-[#D4AF37]/20 p-6 rounded-2xl h-96 flex flex-col relative overflow-hidden shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-white font-bold text-lg">Phân bổ dòng vốn các cổng</h3>
+                  <span className="text-xs bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full border border-zinc-700">Trực tiếp (Live)</span>
+                </div>
+                <div className="flex-1 w-full pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dynamicChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <XAxis dataKey="name" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+                      <Tooltip 
+                        cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                        contentStyle={{ backgroundColor: '#000D1A', borderColor: '#3f3f46', borderRadius: '8px' }}
+                        itemStyle={{ color: '#fff' }}
+                        formatter={(value: any) => [`${value.toLocaleString('vi-VN')} đ`, 'Vốn đầu tư']}
+                      />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                        {dynamicChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'finance' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">Trung tâm phê duyệt <span className="text-[#D4AF37] font-normal text-lg">/ Giao dịch</span></h2>
+              </div>
+              
+              <div className="flex gap-4 border-b border-zinc-800 pb-2">
+                <button 
+                  onClick={() => setFinanceTabFilter('pending')}
+                  className={`px-4 py-2 font-bold rounded-t-lg transition-colors flex items-center gap-2 ${financeTabFilter === 'pending' ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Chờ duyệt (Pending)
+                  {pendingTransactions.length > 0 && <span className="bg-rose-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingTransactions.length}</span>}
+                </button>
+                <button 
+                  onClick={() => setFinanceTabFilter('success')}
+                  className={`px-4 py-2 font-bold rounded-t-lg transition-colors flex items-center gap-2 ${financeTabFilter === 'success' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Thành công (Success)
+                </button>
+                <button 
+                  onClick={() => setFinanceTabFilter('rejected')}
+                  className={`px-4 py-2 font-bold rounded-t-lg transition-colors flex items-center gap-2 ${financeTabFilter === 'rejected' ? 'text-rose-400 border-b-2 border-rose-400' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Đã hủy (Rejected)
+                </button>
+              </div>
+
+              <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left text-xs md:text-sm whitespace-nowrap table-auto md:table-fixed">
+                    <thead className="bg-[#000D1A] text-[#D4AF37] text-[11px] md:text-xs uppercase font-black tracking-wider border-b border-[#D4AF37]/30">
+                      <tr>
+                        <th className="px-4 py-3.5 w-24">Mã GD</th>
+                        <th className="px-4 py-3.5 w-36">Thời gian</th>
+                        <th className="px-4 py-3.5">Tài khoản</th>
+                        <th className="px-4 py-3.5 w-28">Cổng GD</th>
+                        <th className="px-4 py-3.5 w-36">Số tiền</th>
+                        <th className="px-4 py-3.5 w-48 text-right">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50">
+                      {loadingUsers ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-16 text-center text-[#D4AF37] bg-[#001F3F]">
+                            <svg className="animate-spin h-8 w-8 mx-auto mb-3" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            <p className="text-base font-medium">Đang tải dữ liệu từ hệ thống...</p>
+                          </td>
+                        </tr>
+                      ) : displayedTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-16 text-center text-zinc-500 bg-[#001F3F]">
+                            <CheckCircle className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+                            <p className="text-base font-medium">Không có dữ liệu giao dịch</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        displayedTransactions.map((tx) => {
+                          const isOverBalance = tx.type === 'withdraw' && tx.amount > tx.userBalance && financeTabFilter === 'pending';
+                          return (
+                            <tr key={tx.id} className={`transition-colors group ${isOverBalance ? 'bg-rose-500/10' : 'hover:bg-[#D4AF37]/5'}`}>
+                              <td className="px-4 py-3 font-mono text-[#D4AF37] text-xs">#{tx.id.substring(0, 8).toUpperCase()}</td>
+                              <td className="px-4 py-3 text-zinc-400 text-xs">{tx.date}</td>
+                              <td className="px-4 py-3 font-bold text-white">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded bg-zinc-800 flex items-center justify-center text-xs text-zinc-400 shrink-0">
+                                    {tx.userName.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="truncate max-w-[120px] md:max-w-[200px] text-xs md:text-sm">{tx.userName}</span>
+                                    <span className="text-[10px] text-zinc-500 font-mono">{tx.userPhone || '---'}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2.5 py-1 rounded-md text-[10px] md:text-xs font-bold border block w-max ${
+                                  tx.type === 'deposit' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                                  tx.type === 'withdraw' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
+                                  'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                                }`}>
+                                  {tx.type === 'deposit' ? 'Nạp tiền' : tx.type === 'withdraw' ? 'Rút tiền' : 'Đầu tư'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-col">
+                                  <span className="font-black text-white text-xs md:text-sm">{tx.amount?.toLocaleString('vi-VN')} đ</span>
+                                  {isOverBalance && (
+                                    <span className="text-[9px] text-rose-400 font-bold mt-0.5 bg-rose-500/20 px-1.5 py-0.5 rounded w-max">[VƯỢT QUÁ SỐ DƯ]</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {financeTabFilter === 'pending' ? (
+                                  <div className="flex justify-end gap-2">
+                                    <button 
+                                      onClick={() => setSelectedTxDetails(tx)}
+                                      className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 transition-colors"
+                                    >
+                                      Chi tiết
+                                    </button>
+                                    <button 
+                                      onClick={() => handleRejectTransaction(tx, tx.userId)}
+                                      disabled={processingIds.has(tx.id)}
+                                      className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                                        processingIds.has(tx.id)
+                                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+                                          : 'bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-500 border-rose-500/30'
+                                      }`}
+                                    >
+                                      Từ chối
+                                    </button>
+                                    <button 
+                                      onClick={() => handleApproveTransaction(tx, tx.userId)}
+                                      disabled={processingIds.has(tx.id)}
+                                      className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-colors shadow-lg ${
+                                        processingIds.has(tx.id)
+                                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+                                          : 'bg-emerald-500 hover:bg-emerald-400 text-[#000D1A] shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                      }`}
+                                    >
+                                      {processingIds.has(tx.id) ? (
+                                        <span className="flex items-center gap-1">
+                                          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10"
+                                              stroke="currentColor" strokeWidth="4"/>
+                                            <path className="opacity-75" fill="currentColor"
+                                              d="M4 12a8 8 0 018-8v8z"/>
+                                          </svg>
+                                          Đang xử lý...
+                                        </span>
+                                      ) : 'Phê duyệt'}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex justify-end items-center gap-3">
+                                    <button 
+                                      onClick={() => setSelectedTxDetails(tx)}
+                                      className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 transition-colors"
+                                    >
+                                      Chi tiết
+                                    </button>
+                                    <span className={`font-bold text-xs md:text-sm ${financeTabFilter === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                      {financeTabFilter === 'success' ? 'Đã duyệt' : 'Đã từ chối'}
+                                      {financeTabFilter === 'rejected' && tx.reason && (
+                                        <div className="text-[10px] text-zinc-500 mt-0.5 max-w-[150px] truncate text-right" title={tx.reason}>{tx.reason}</div>
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'users' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">Quản lý người dùng <span className="text-[#D4AF37] font-normal text-lg">/ Định danh KYC</span></h2>
+              </div>
+              
+              <div className="flex gap-4 border-b border-zinc-800 pb-2">
+                <button 
+                  onClick={() => setUsersTabFilter('pending')}
+                  className={`px-4 py-2 font-bold rounded-t-lg transition-colors flex items-center gap-2 ${usersTabFilter === 'pending' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Chờ duyệt KYC
+                  {pendingKycUsers.length > 0 && <span className="bg-amber-500 text-[#000D1A] text-xs px-2 py-0.5 rounded-full">{pendingKycUsers.length}</span>}
+                </button>
+                <button 
+                  onClick={() => setUsersTabFilter('verified')}
+                  className={`px-4 py-2 font-bold rounded-t-lg transition-colors flex items-center gap-2 ${usersTabFilter === 'verified' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Đã xác minh
+                </button>
+                <button 
+                  onClick={() => setUsersTabFilter('locked')}
+                  className={`px-4 py-2 font-bold rounded-t-lg transition-colors flex items-center gap-2 ${usersTabFilter === 'locked' ? 'text-rose-400 border-b-2 border-rose-400' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Bị khóa / Vi phạm
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {displayedUsers.map(u => (
+                  <div key={u.id} className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl p-6 relative overflow-hidden flex flex-col gap-5 shadow-lg group hover:border-[#D4AF37]/60 transition-colors">
+                    {u.isLocked && <div className="absolute top-0 left-0 w-full h-1.5 bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>}
+                    {!u.isLocked && u.isIdentityVerified && <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>}
+                    {!u.isLocked && !u.isIdentityVerified && <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
+                    
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-[#000D1A] to-zinc-900 border border-[#D4AF37]/40 rounded-full flex items-center justify-center text-2xl font-black text-[#D4AF37] shadow-inner shrink-0">
+                          {(u.displayName?.[0] || 'U').toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-white text-lg truncate max-w-[140px]">{u.displayName || u.phoneNumber}</h3>
+                            {u.isIdentityVerified && <span title="Đã xác minh"><CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" /></span>}
+                            {u.tierName && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 ${u.tierName === 'VVIP' ? 'bg-black text-[#D4AF37] border border-[#D4AF37]' : u.tierName === 'VIP' ? 'bg-[#D4AF37] text-black' : u.tierName === 'Gold' ? 'bg-zinc-300 text-zinc-800' : 'bg-zinc-800 text-zinc-400'}`}>
+                                {u.tierName}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm text-zinc-400 font-mono mt-0.5 block">{u.phoneNumber}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#000D1A] rounded-xl p-4 flex justify-between items-center border border-zinc-800/80">
+                      <div>
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">Trạng thái</span>
+                        <span className={`text-sm font-bold ${u.isLocked ? 'text-rose-400' : u.isIdentityVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {u.isLocked ? 'Đã khóa' : u.isIdentityVerified ? 'Đã xác minh' : 'Chờ KYC'}
+                        </span>
+                      </div>
+                      <div className="w-px h-10 bg-zinc-800"></div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">Số dư</span>
+                        <span className="text-sm font-black text-[#D4AF37]">{(u.balance || 0).toLocaleString('vi-VN')} đ</span>
+                      </div>
+                    </div>
+
+                    {/* Phân quyền người dùng & quản trị */}
+                    <div className="bg-[#000D1A] rounded-xl p-4 border border-zinc-800/80 flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-500 font-semibold uppercase tracking-wider">Vai trò:</span>
+                        <span className={`px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-wider ${
+                          u.role === 'super_admin' ? 'bg-rose-500 text-white' :
+                          u.role === 'admin' ? 'bg-[#D4AF37] text-black' :
+                          u.role === 'finance_admin' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          u.role === 'support_admin' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
+                          'bg-zinc-800 text-zinc-300'
+                        }`}>
+                          {u.role || 'user'}
+                        </span>
+                      </div>
+                      
+                      {userCtx.role === 'super_admin' && (
+                        <div className="flex items-center gap-2 mt-1 pt-1 border-t border-zinc-800/60">
+                          <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">Chuyển quyền:</span>
+                          <select
+                            value={u.role || 'user'}
+                            onChange={(e) => updateUserRole(u.id, u.role || 'user', e.target.value)}
+                            className="bg-black border border-zinc-800 hover:border-[#D4AF37]/50 rounded text-xs px-2 py-1 text-zinc-300 w-full focus:outline-none"
+                          >
+                            <option value="user">User (Người chơi)</option>
+                            <option value="support_admin">Support Admin</option>
+                            <option value="finance_admin">Finance Admin</option>
+                            <option value="admin">System Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Khôi phục mật khẩu */}
+                    {(userCtx.role === 'super_admin' || userCtx.role === 'admin' || userCtx.role === 'support_admin') && (
+                      <button
+                        onClick={() => resetUserPassword(u.id)}
+                        className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 hover:border-amber-500/40 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" /> Đặt lại mật khẩu (Reset Password)
+                      </button>
+                    )}
+
+                    <div className="flex justify-between items-center mt-auto pt-2 gap-2">
+                      <div className="flex-1">
+                        {!u.isIdentityVerified && !u.isLocked ? (
+                          <button onClick={() => setKycUserModal(u)} className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-[#000D1A] text-xs font-black uppercase tracking-wider rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                            <FileText className="w-3.5 h-3.5"/> Xem tài liệu KYC
+                          </button>
+                        ) : u.isIdentityVerified && !u.isLocked ? (
+                          <button onClick={() => setKycUserModal(u)} className="w-full py-2 bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+                            <FileText className="w-3.5 h-3.5"/> Xem hồ sơ
+                          </button>
+                        ) : null}
+                      </div>
+                      <button 
+                        onClick={() => toggleUserLock(u.id, !!u.isLocked)}
+                        className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg flex items-center justify-center gap-1.5 transition-all w-[110px] shrink-0 ${u.isLocked ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700'}`}
+                      >
+                        {u.isLocked ? <><Unlock className="w-3.5 h-3.5"/> Mở khóa</> : <><Lock className="w-3.5 h-3.5"/> Khóa TK</>}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {displayedUsers.length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-500 bg-[#001F3F] border border-zinc-800/50 rounded-2xl">
+                    <Users className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+                    <p className="text-base font-medium">Không có người dùng nào trong danh sách này</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'projects' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <h2 className="text-2xl font-bold text-white border-b border-zinc-800 pb-4">Trung tâm điều hành dự án</h2>
+              
+              <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#000D1A] text-[#D4AF37] text-xs uppercase font-black tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4">Dự án</th>
+                      <th className="px-6 py-4">Phân khu</th>
+                      <th className="px-6 py-4">Tiến độ</th>
+                      <th className="px-6 py-4">Trạng thái</th>
+                      <th className="px-6 py-4">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {userCtx.adminProjects.map(p => (
+                      <tr key={p.id} className="hover:bg-white/5">
+                        <td className="px-6 py-4 font-bold">{p.title}</td>
+                        <td className="px-6 py-4 text-zinc-400">{p.category}</td>
+                        <td className="px-6 py-4">
+                          <div className="w-full bg-zinc-700 h-2 rounded-full overflow-hidden">
+                            <div className="bg-emerald-500 h-full" style={{ width: `${p.progress}%` }}></div>
+                          </div>
+                          <span className="text-xs text-zinc-300">{p.progress}%</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : p.status === 'MAINTENANCE' ? 'bg-zinc-500/20 text-zinc-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 flex gap-2">
+                          <button onClick={() => handleUpdateProjectStatus(p.id, 'ACTIVE', p.title)} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs font-bold">Mở</button>
+                          <button onClick={() => handleUpdateProjectStatus(p.id, 'MAINTENANCE', p.title)} className="px-2 py-1 bg-zinc-500/20 text-zinc-400 rounded text-xs font-bold">Bảo trì</button>
+                          <button onClick={() => handleUpdateProjectStatus(p.id, 'CLOSED', p.title)} className="px-2 py-1 bg-rose-500/20 text-rose-400 rounded text-xs font-bold">Đóng</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="bg-[#001F3F] border border-zinc-800 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4">Nhật ký vận hành</h3>
+                <div className="space-y-2 text-xs font-mono text-zinc-400 max-h-60 overflow-y-auto">
+                  {userCtx.auditLog.map(log => (
+                      <div key={log.id} className="border-b border-zinc-800 py-1">
+                          [{log.time}] {log.adminName}: {log.action}
+                      </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'cms' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">Content CMS <span className="text-[#D4AF37] font-normal text-lg">/ Quản lý nội dung</span></h2>
+                <div className="flex gap-2">
+                  {(['news', 'banners', 'vinfast'] as const).map(tab => (
+                    <button 
+                      key={tab}
+                      onClick={() => setCmsSubTab(tab)}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${cmsSubTab === tab ? 'bg-[#D4AF37] text-[#000D1A]' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}
+                    >
+                      {tab === 'news' ? 'Tin tức' : tab === 'banners' ? 'Banner' : 'VinFast'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {cmsSubTab === 'news' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-white">Danh sách Tin tức</h3>
+                    <button 
+                      onClick={() => setIsAddingNews(true)}
+                      className="px-4 py-2 bg-[#D4AF37] text-[#000D1A] font-bold rounded-lg hover:bg-[#b5952f] transition-colors"
+                    >
+                      + Thêm bài viết
+                    </button>
+                  </div>
+                  {isAddingNews && (
+                    <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-lg p-6 space-y-4">
+                      <input type="text" placeholder="Tiêu đề" className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-3 text-white" 
+                        onChange={(e) => setNewsForm({...newsForm, title: e.target.value})} />
+                      <select className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-3 text-white"
+                        onChange={(e) => setNewsForm({...newsForm, category: e.target.value})}>
+                        <option value="Tin tức VinFast">Tin tức VinFast</option>
+                        <option value="Hệ sinh thái">Hệ sinh thái</option>
+                        <option value="Công nghệ">Công nghệ</option>
+                      </select>
+                      <input type="text" placeholder="URL Hình ảnh" className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-3 text-white"
+                        onChange={(e) => setNewsForm({...newsForm, image: e.target.value})} />
+                      <textarea placeholder="Nội dung chi tiết" className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-3 text-white h-32"
+                        onChange={(e) => setNewsForm({...newsForm, content: e.target.value})} />
+                      <div className="flex gap-3">
+                        <button onClick={() => {
+                          if (newsForm.id) {
+                            updateCmsNews(cmsNews.map(n => n.id === newsForm.id ? { ...n, ...newsForm } : n));
+                          } else {
+                            updateCmsNews([{id: Date.now().toString(), date: new Date().toLocaleDateString(), ...newsForm}, ...cmsNews]);
+                          }
+                          setIsAddingNews(false);
+                          setNewsForm({});
+                        }} className="px-6 py-2 bg-emerald-500 text-white font-bold rounded-lg">Xuất bản</button>
+                        <button onClick={() => setIsAddingNews(false)} className="px-6 py-2 bg-zinc-700 text-white font-bold rounded-lg">Hủy</button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {cmsNews.map((news, index) => (
+                      <div key={news.id || index} className="bg-[#001F3F] border border-zinc-800 rounded-lg p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <img src={news.image || undefined} alt={news.title} className="w-16 h-12 object-cover rounded" />
+                          <div>
+                            <p className="text-white font-bold">{news.title}</p>
+                            <p className="text-zinc-400 text-xs">{news.category} • {news.date}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => {
+                            setNewsForm(news);
+                            setIsAddingNews(true);
+                          }} className="p-2 text-zinc-400 hover:text-white">Sửa</button>
+                          <button onClick={() => updateCmsNews(cmsNews.filter((_, i) => i !== index))} className="p-2 text-red-400 hover:text-red-300">Xóa</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {cmsSubTab === 'banners' && (
+                <div className="space-y-4">
+                  {cmsBanners.map((banner, index) => (
+                    <div key={index} className="bg-[#001F3F] border border-zinc-800 rounded-lg p-4 flex gap-4">
+                      {banner ? (
+                        <img src={banner} alt={`Banner ${index + 1}`} className="w-32 h-20 object-cover rounded-lg" />
+                      ) : (
+                        <div className="w-32 h-20 bg-zinc-700 rounded-lg flex items-center justify-center text-zinc-500 text-xs">No Image</div>
+                      )}
+                      <input 
+                        type="text" 
+                        value={banner}
+                        onChange={(e) => {
+                          const newBanners = [...cmsBanners];
+                          newBanners[index] = e.target.value;
+                          updateCmsBanners(newBanners);
+                        }}
+                        className="flex-1 bg-[#000D1A] border border-zinc-700 rounded-lg p-3 text-white"
+                      />
+                    </div>
+                  ))}
+                  <button 
+                    onClick={() => updateCmsBanners([...cmsBanners, ''])}
+                    className="w-full py-3 bg-zinc-800 text-white font-bold rounded-lg hover:bg-zinc-700 transition-colors"
+                  >
+                    Thêm Banner
+                  </button>
+                </div>
+              )}
+              {cmsSubTab === 'vinfast' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-white">Quản lý danh mục xe VinFast</h3>
+                    <button 
+                      onClick={saveVinfastChanges}
+                      className="px-6 py-2 bg-[#D4AF37] text-[#000D1A] font-bold rounded-lg hover:bg-[#b5952f] transition-colors"
+                    >
+                      Lưu thay đổi
+                    </button>
+                  </div>
+
+                  <div className="bg-[#001F3F] border border-zinc-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-white">
+                      <thead>
+                        <tr className="bg-[#000D1A] text-[#D4AF37] text-sm uppercase tracking-wider">
+                          <th className="p-4">Dòng xe</th>
+                          <th className="p-4">Công suất (kW)</th>
+                          <th className="p-4">Lợi nhuận (%/Ngày)</th>
+                          <th className="p-4">Góp vốn tối thiểu (VNĐ)</th>
+                          <th className="p-4">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800">
+                        {localVinfast.map((car, index) => (
+                          <tr key={index} className="hover:bg-[#002b55]/50 transition-colors">
+                            <td className="p-4 font-bold text-lg">{car.title}</td>
+                            <td className="p-2">
+                              <input type="text" value={car.kw || ''} placeholder="kW" className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-2 text-white focus:border-[#D4AF37] outline-none"
+                                onChange={(e) => {
+                                  const newCars = [...localVinfast];
+                                  newCars[index] = {...newCars[index], kw: e.target.value};
+                                  setLocalVinfast(newCars);
+                                }}/>
+                            </td>
+                            <td className="p-2">
+                              <input type="text" value={car.profit || ''} placeholder="%" className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-2 text-white focus:border-[#D4AF37] outline-none"
+                                onChange={(e) => {
+                                  const newCars = [...localVinfast];
+                                  newCars[index] = {...newCars[index], profit: e.target.value};
+                                  setLocalVinfast(newCars);
+                                }}/>
+                            </td>
+                            <td className="p-2">
+                              <input type="text" value={car.minCapital || ''} placeholder="VNĐ" className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-2 text-white focus:border-[#D4AF37] outline-none"
+                                onChange={(e) => {
+                                  const newCars = [...localVinfast];
+                                  newCars[index] = {...newCars[index], minCapital: e.target.value};
+                                  setLocalVinfast(newCars);
+                                }}/>
+                            </td>
+                            <td className="p-2">
+                                <button 
+                                  onClick={saveVinfastChanges}
+                                  className="px-4 py-2 bg-[#D4AF37] text-[#000D1A] font-bold rounded-lg hover:bg-[#b5952f] transition-colors"
+                                >
+                                  Lưu
+                                </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {activeTab === 'notifications' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">Push Notifications <span className="text-[#D4AF37] font-normal text-lg">/ Ticker Banner</span></h2>
+              </div>
+              <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl p-6 shadow-lg max-w-2xl">
+                <h3 className="text-lg font-bold text-white mb-4">Cập nhật nội dung chạy chữ (Ticker Banner)</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-zinc-400 mb-2">Nội dung thông báo mới</label>
+                    <textarea 
+                      value={tickerInput}
+                      onChange={e => setTickerInput(e.target.value)}
+                      className="w-full bg-[#000D1A] border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+                      rows={4}
+                      placeholder="Nhập nội dung hiển thị trên Ticker Banner (ví dụ: Khách hàng ***829 vừa rút thành công 3.292.000.000 VNĐ)"
+                    ></textarea>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={handlePushTicker} className="px-6 py-2.5 bg-[#D4AF37] hover:bg-[#b5952f] text-[#000D1A] font-bold rounded-xl transition-colors shadow-[0_0_15px_rgba(212,175,55,0.3)] flex items-center gap-2">
+                      <Bell className="w-5 h-5" /> Phát sóng thông báo
+                    </button>
+                  </div>
+                  
+                  <div className="mt-8 pt-6 border-t border-zinc-800">
+                    <h4 className="font-bold text-sm text-zinc-400 mb-3">Thông báo đang hiển thị</h4>
+                    <div className="space-y-2">
+                      {tickerMessages.map((msg, idx) => (
+                        <div key={idx} className="bg-[#000D1A] p-3 rounded-lg border border-zinc-800 text-sm text-white">
+                          <span className="text-emerald-400 mr-2">#{idx + 1}</span> {msg}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'support' && (
+            <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4 mb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">Support Console <span className="text-[#D4AF37] font-normal text-lg">/ Hỗ trợ CSKH</span></h2>
+              </div>
+              <div className="flex flex-1 overflow-hidden bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl shadow-lg">
+                {/* Users List */}
+                <div className="w-1/3 border-r border-zinc-800 flex flex-col">
+                  <div className="p-4 border-b border-zinc-800">
+                    <h3 className="font-bold text-white mb-2">Đang hoạt động</h3>
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                      <input 
+                        type="text" 
+                        placeholder="Tìm người dùng..." 
+                        className="w-full bg-[#000D1A] border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {allUsers.map(u => (
+                      <button 
+                        key={u.id}
+                        onClick={() => setSelectedChatUser(u)}
+                        className={`w-full p-4 flex items-center gap-3 border-b border-zinc-800/50 transition-colors text-left ${selectedChatUser?.id === u.id ? 'bg-[#D4AF37]/10 border-l-2 border-l-[#D4AF37]' : 'hover:bg-zinc-800/50'}`}
+                      >
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-[#D4AF37]">
+                          {(u.displayName?.[0] || 'U').toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-sm text-white truncate">{u.displayName || u.phoneNumber}</h4>
+                          <p className="text-xs text-zinc-500 truncate">{u.phoneNumber}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chat Area */}
+                <div className="flex-1 flex flex-col bg-[#000D1A]">
+                  {selectedChatUser ? (
+                    <>
+                      <div className="p-4 border-b border-zinc-800 bg-[#001F3F] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-[#D4AF37]">
+                            {(selectedChatUser.displayName?.[0] || 'U').toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-white">{selectedChatUser.displayName || selectedChatUser.phoneNumber}</h3>
+                            <span className="text-xs text-emerald-400 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> Đang trực tuyến</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {adminChatMessages.length === 0 ? (
+                          <div className="text-center text-zinc-500 mt-10">Chưa có tin nhắn nào.</div>
+                        ) : (
+                          adminChatMessages.map(msg => (
+                            <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'admin' ? 'items-end' : 'items-start'}`}>
+                              <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${msg.sender_role === 'admin' ? 'bg-[#D4AF37] text-[#000D1A] rounded-tr-sm' : 'bg-zinc-800 text-white rounded-tl-sm'}`}>
+                                <p className="text-sm">{msg.content}</p>
+                              </div>
+                              <span className="text-[10px] text-zinc-500 mt-1">{msg.timeFormatted}</span>
+                            </div>
+                          ))
+                        )}
+                        <div ref={chatEndRef} />
+                      </div>
+                      
+                      <div className="p-4 border-t border-zinc-800 bg-[#001F3F]">
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="text" 
+                            value={adminChatText}
+                            onChange={e => setAdminChatText(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSendAdminMessage()}
+                            placeholder={`Nhắn tin cho ${selectedChatUser.displayName || selectedChatUser.phoneNumber}...`}
+                            className="flex-1 bg-[#000D1A] border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+                          />
+                          <button 
+                            onClick={handleSendAdminMessage}
+                            className="p-3 bg-[#D4AF37] text-[#000D1A] rounded-xl hover:bg-[#b5952f] transition-colors"
+                          >
+                            <MessageSquare className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
+                      <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
+                      <p>Chọn một người dùng để bắt đầu hỗ trợ</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'audit_logs' && (userCtx.role === 'admin' || userCtx.role === 'super_admin') && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4 mb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <ShieldAlert className="w-6 h-6 text-[#D4AF37]" />
+                  Nhật ký Hệ thống <span className="text-[#D4AF37] font-normal text-lg">/ Audit Logs</span>
+                </h2>
+              </div>
+
+              <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl p-6 shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-white">Lịch sử hoạt động của Quản trị viên</h3>
+                  <span className="text-xs font-mono text-[#D4AF37] bg-[#D4AF37]/10 px-3 py-1 rounded-full border border-[#D4AF37]/20">
+                    {auditLogs.length} bản ghi
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-800 text-zinc-400 text-xs font-bold uppercase tracking-wider">
+                        <th className="px-6 py-4">Thời gian</th>
+                        <th className="px-6 py-4">Quản trị viên</th>
+                        <th className="px-6 py-4">Hành động</th>
+                        <th className="px-6 py-4">Mã Admin UID</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50 text-sm text-zinc-200">
+                      {auditLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-10 text-center text-zinc-500">
+                            Chưa có bản ghi hoạt động nào trong hệ thống.
+                          </td>
+                        </tr>
+                      ) : (
+                        auditLogs.map(log => (
+                          <tr key={log.id} className="hover:bg-zinc-800/20 transition-colors">
+                            <td className="px-6 py-4 font-mono text-xs text-zinc-400 whitespace-nowrap">
+                              {log.timeFormatted}
+                            </td>
+                            <td className="px-6 py-4 font-bold text-[#D4AF37] whitespace-nowrap">
+                              {log.adminName}
+                            </td>
+                            <td className="px-6 py-4 text-zinc-200">
+                              {log.action}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs text-zinc-500 whitespace-nowrap">
+                              {log.adminId || '---'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      {/* KYC Modal */}
+      {kycUserModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-[#D4AF37]/20 flex justify-between items-center bg-[#000D1A] rounded-t-2xl">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-[#D4AF37]" />
+                Thẩm định KYC: {kycUserModal.displayName || kycUserModal.phoneNumber}
+              </h3>
+              <button onClick={() => setKycUserModal(null)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-zinc-800 transition-colors">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div>
+                <p className="text-zinc-400 text-sm font-bold mb-2">Thông tin đăng ký</p>
+                <div className="bg-[#000D1A] rounded-xl p-4 border border-zinc-800 grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">Số điện thoại</span>
+                    <span className="text-sm font-bold text-white">{kycUserModal.phoneNumber || '---'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">CCCD</span>
+                    <span className="text-sm font-mono text-[#D4AF37] font-bold">{kycUserModal.cccd || '---'}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-400 text-sm font-bold mb-2">Ảnh mặt trước CCCD</p>
+                <div className="bg-[#000D1A] border border-zinc-800 rounded-xl overflow-hidden min-h-[200px] flex items-center justify-center">
+                  {kycUserModal.cccdFrontImage ? (
+                    <img src={kycUserModal.cccdFrontImage} alt="Mặt trước" className="w-full h-auto object-contain max-h-[300px]" />
+                  ) : (
+                    <span className="text-zinc-600 font-medium">Chưa có ảnh</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-400 text-sm font-bold mb-2">Ảnh mặt sau CCCD</p>
+                <div className="bg-[#000D1A] border border-zinc-800 rounded-xl overflow-hidden min-h-[200px] flex items-center justify-center">
+                  {kycUserModal.cccdBackImage ? (
+                    <img src={kycUserModal.cccdBackImage} alt="Mặt sau" className="w-full h-auto object-contain max-h-[300px]" />
+                  ) : (
+                    <span className="text-zinc-600 font-medium">Chưa có ảnh</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-[#D4AF37]/20 bg-[#000D1A] rounded-b-2xl flex justify-between gap-3">
+              <button 
+                onClick={() => setKycUserModal(null)}
+                className="px-6 py-2.5 rounded-xl font-bold text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+              >
+                Đóng
+              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => rejectKyc(kycUserModal.id)}
+                  className="px-6 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white font-black uppercase tracking-wider rounded-xl border border-rose-500/30 transition-colors flex items-center gap-2"
+                >
+                  <XCircle className="w-5 h-5" /> Từ chối
+                </button>
+                <button 
+                  onClick={() => approveKyc(kycUserModal.id)}
+                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-[#000D1A] font-black uppercase tracking-wider rounded-xl transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                >
+                  <CheckCircle className="w-5 h-5" /> Phê duyệt KYC
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Details Modal */}
+      {selectedTxDetails && (() => {
+        const selectedUser = allUsers.find(u => u.id === selectedTxDetails.userId);
+        const selectedUserTransactions = selectedUser?.transactions || [];
+        const isOverBalance = selectedTxDetails.type === 'withdraw' && selectedTxDetails.amount > selectedTxDetails.userBalance;
+        
+        return (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[#000D1A] border border-[#D4AF37]/50 rounded-2xl w-full max-w-4xl shadow-[0_0_50px_rgba(212,175,55,0.15)] flex flex-col overflow-hidden max-h-[90vh] my-8 animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="p-6 border-b border-[#D4AF37]/20 flex justify-between items-center bg-gradient-to-r from-[#001F3F] to-[#000D1A]">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <span className="text-[#D4AF37]">Chi Tiết Giao Dịch:</span> #{selectedTxDetails.id.toUpperCase()}
+                </h3>
+                <button 
+                  onClick={() => setSelectedTxDetails(null)} 
+                  className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-zinc-800 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {/* Content (Scrollable) */}
+              <div className="p-6 overflow-y-auto space-y-6 text-sm flex-1">
+                {/* 2-column key metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column: Transaction Metadata */}
+                  <div className="space-y-4 bg-[#001F3F] p-5 rounded-xl border border-zinc-800">
+                    <h4 className="font-bold text-[#D4AF37] uppercase tracking-wider text-xs border-b border-zinc-800 pb-2">Thông tin giao dịch</h4>
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-2">
+                      <span className="text-zinc-400">Loại giao dịch:</span>
+                      <span className="font-bold text-white capitalize">
+                        {selectedTxDetails.type === 'deposit' ? 'Nạp tiền' : selectedTxDetails.type === 'withdraw' ? 'Rút tiền' : 'Đầu tư'}
+                      </span>
+                      
+                      <span className="text-zinc-400">Số tiền:</span>
+                      <span className="font-black text-[#D4AF37] text-base">
+                        {selectedTxDetails.amount?.toLocaleString('vi-VN')} đ
+                      </span>
+                      
+                      <span className="text-zinc-400">Thời gian tạo:</span>
+                      <span className="text-white font-mono">{selectedTxDetails.date}</span>
+                      
+                      <span className="text-zinc-400">Trạng thái:</span>
+                      <span className={`font-bold ${
+                        selectedTxDetails.status === 'Đang xử lý' ? 'text-amber-400' :
+                        selectedTxDetails.status === 'Thành công' ? 'text-emerald-400' : 'text-rose-400'
+                      }`}>
+                        {selectedTxDetails.status}
+                      </span>
+
+                      {selectedTxDetails.reason && (
+                        <>
+                          <span className="text-zinc-400">Lý do từ chối:</span>
+                          <span className="text-rose-400 font-medium italic">{selectedTxDetails.reason}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column: User Metadata */}
+                  <div className="space-y-4 bg-[#001F3F] p-5 rounded-xl border border-zinc-800">
+                    <h4 className="font-bold text-[#D4AF37] uppercase tracking-wider text-xs border-b border-zinc-800 pb-2">Thông tin người chơi</h4>
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-2">
+                      <span className="text-zinc-400">Tài khoản ID:</span>
+                      <span className="font-mono text-white truncate text-xs" title={selectedTxDetails.userId}>{selectedTxDetails.userId}</span>
+                      
+                      <span className="text-zinc-400">Họ tên / Nickname:</span>
+                      <span className="font-bold text-white">{selectedTxDetails.userName}</span>
+                      
+                      <span className="text-zinc-400">Số điện thoại:</span>
+                      <span className="font-mono text-white">{selectedTxDetails.userPhone || '---'}</span>
+                      
+                      <span className="text-zinc-400">Số dư ví hiện tại:</span>
+                      <span className="font-bold text-emerald-400">
+                        {selectedTxDetails.userBalance?.toLocaleString('vi-VN')} đ
+                      </span>
+
+                      {isOverBalance && (
+                        <div className="col-span-2 text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2 mt-1">
+                          ⚠️ Cảnh báo: Số dư ví hiện tại nhỏ hơn số tiền rút!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Player Notes */}
+                <div className="bg-[#001F3F] p-5 rounded-xl border border-zinc-800 space-y-2">
+                  <h4 className="font-bold text-[#D4AF37] uppercase tracking-wider text-xs border-b border-zinc-800 pb-2 flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4" /> Ghi chú từ Player
+                  </h4>
+                  <div className="p-3 bg-black/40 border border-zinc-800 rounded-lg text-zinc-300 min-h-[50px]">
+                    {selectedTxDetails.note || <span className="text-zinc-500 italic">Không có lời nhắn/ghi chú từ player cho giao dịch này.</span>}
+                  </div>
+                </div>
+
+                {/* Proof Image Section */}
+                {selectedTxDetails.type === 'deposit' && (
+                  <div className="bg-[#001F3F] p-5 rounded-xl border border-zinc-800 space-y-3">
+                    <h4 className="font-bold text-[#D4AF37] uppercase tracking-wider text-xs border-b border-zinc-800 pb-2 flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4" /> Ảnh chứng từ nạp tiền
+                    </h4>
+                    
+                    {selectedTxDetails.proofImage ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="relative border border-zinc-800 rounded-lg overflow-hidden max-h-[350px] w-full flex items-center justify-center bg-black/60">
+                          <img 
+                            src={selectedTxDetails.proofImage} 
+                            alt="Chứng từ nạp tiền" 
+                            className="max-h-[350px] object-contain transition-transform hover:scale-105 duration-300"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <a 
+                          href={selectedTxDetails.proofImage} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#D4AF37] hover:underline flex items-center gap-1 font-bold"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Mở ảnh trong tab mới để xem chi tiết
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center border-2 border-dashed border-zinc-800 rounded-lg text-zinc-500 flex flex-col items-center justify-center gap-2">
+                        <ImageIcon className="w-8 h-8 text-zinc-600" />
+                        <span className="text-xs">Không có ảnh minh chứng được gửi kèm.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Lịch sử giao dịch của user đó */}
+                <div className="bg-[#001F3F] p-5 rounded-xl border border-zinc-800 space-y-3">
+                  <h4 className="font-bold text-[#D4AF37] uppercase tracking-wider text-xs border-b border-zinc-800 pb-2 flex items-center gap-1.5">
+                    <History className="w-4 h-4" /> Lịch sử giao dịch gần đây của {selectedTxDetails.userName}
+                  </h4>
+                  <div className="overflow-x-auto max-h-[220px] border border-zinc-800/80 rounded-lg">
+                    <table className="w-full text-left text-xs whitespace-nowrap">
+                      <thead className="bg-[#000D1A] text-[#D4AF37] text-[10px] uppercase font-black tracking-wider border-b border-[#D4AF37]/20 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2.5">Thời gian</th>
+                          <th className="px-4 py-2.5">Loại</th>
+                          <th className="px-4 py-2.5">Số tiền</th>
+                          <th className="px-4 py-2.5">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/50 bg-black/20">
+                        {selectedUserTransactions.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-8 text-center text-zinc-500 italic">Không có lịch sử giao dịch nào khác.</td>
+                          </tr>
+                        ) : (
+                          [...selectedUserTransactions].sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '')).slice(0, 5).map((utx: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-white/5">
+                              <td className="px-4 py-2 font-mono text-zinc-400">{utx.date}</td>
+                              <td className="px-4 py-2">
+                                <span className={`font-bold ${
+                                  utx.type === 'deposit' ? 'text-emerald-400' :
+                                  utx.type === 'withdraw' ? 'text-rose-400' : 'text-sky-400'
+                                }`}>
+                                  {utx.type === 'deposit' ? 'Nạp tiền' : utx.type === 'withdraw' ? 'Rút tiền' : utx.type === 'invest' ? 'Đầu tư' : utx.type}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 font-bold text-white">{utx.amount?.toLocaleString('vi-VN')} đ</td>
+                              <td className="px-4 py-2 font-semibold">
+                                <span className={
+                                  utx.status === 'Thành công' ? 'text-emerald-400' :
+                                  utx.status === 'Đang xử lý' ? 'text-amber-400' : 'text-rose-500'
+                                }>
+                                  {utx.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer with Approvals */}
+              <div className="p-6 border-t border-[#D4AF37]/20 flex justify-end gap-3 bg-[#000D1A]">
+                <button 
+                  onClick={() => setSelectedTxDetails(null)}
+                  className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-all"
+                >
+                  Đóng
+                </button>
+                
+                {selectedTxDetails.status === 'Đang xử lý' && (
+                  <>
+                    <button 
+                      onClick={async () => {
+                        const txToProcess = selectedTxDetails;
+                        setSelectedTxDetails(null);
+                        await handleRejectTransaction(txToProcess, txToProcess.userId);
+                      }}
+                      disabled={processingIds.has(selectedTxDetails.id)}
+                      className="px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30 font-bold rounded-xl transition-all flex items-center gap-1.5"
+                    >
+                      <XCircle className="w-4 h-4" /> Từ chối
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        const txToProcess = selectedTxDetails;
+                        setSelectedTxDetails(null);
+                        await handleApproveTransaction(txToProcess, txToProcess.userId);
+                      }}
+                      disabled={processingIds.has(selectedTxDetails.id)}
+                      className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-[#000D1A] font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] flex items-center gap-1.5"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Phê duyệt
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
