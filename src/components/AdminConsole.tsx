@@ -283,11 +283,146 @@ function ProjectEditCard({ project, onSave }: ProjectEditCardProps) {
   );
 }
 
+function ProjectEditParamsForm({ project, onSave }: { project: Project, onSave: (id: string, updates: Partial<Project>) => Promise<void> }) {
+  const [title, setTitle] = useState(project.title);
+  const [interestRateValue, setInterestRateValue] = useState(project.interestRateValue);
+  const [minInvestAmount, setMinInvestAmount] = useState(project.minInvestAmount);
+  const [scale, setScale] = useState(project.scale || '');
+  const [durationDays, setDurationDays] = useState(project.durationDays || 5);
+  const [progress, setProgress] = useState(project.progress || 0);
+  const [imageUrl, setImageUrl] = useState(project.imageUrl || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(project.id, {
+        title,
+        interestRateValue: Number(interestRateValue),
+        minInvestAmount: Number(minInvestAmount),
+        scale,
+        durationDays: Number(durationDays),
+        progress: Number(progress),
+        imageUrl
+      });
+      alert(`Đã lưu cấu hình dự án "${title}" thành công!`);
+    } catch (e) {
+      console.error(e);
+      alert('Lỗi lưu cấu hình!');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 text-zinc-300 font-body">
+      <div>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Tên dự án / xe / cổ phiếu</label>
+        <input 
+          type="text" 
+          value={title} 
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full bg-[#1e293b]/50 border border-zinc-800 rounded-xl px-4 py-2 text-white outline-none focus:border-[#D4AF37] transition-all"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Lãi suất (% / chu kỳ)</label>
+          <div className="relative flex items-center">
+            <input 
+              type="number" 
+              step="0.1"
+              value={(interestRateValue * 100).toFixed(1)} 
+              onChange={(e) => setInterestRateValue(Number(e.target.value) / 100)}
+              className="w-full bg-[#1e293b]/50 border border-zinc-800 rounded-xl px-4 py-2 text-white outline-none focus:border-[#D4AF37] transition-all"
+            />
+            <span className="absolute right-3 text-zinc-400 font-bold">%</span>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Tối thiểu (VNĐ)</label>
+          <input 
+            type="number" 
+            value={minInvestAmount} 
+            onChange={(e) => setMinInvestAmount(Number(e.target.value))}
+            className="w-full bg-[#1e293b]/50 border border-zinc-800 rounded-xl px-4 py-2 text-white outline-none focus:border-[#D4AF37] transition-all"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Kỳ hạn (ngày)</label>
+          <input 
+            type="number" 
+            value={durationDays} 
+            onChange={(e) => setDurationDays(Number(e.target.value))}
+            className="w-full bg-[#1e293b]/50 border border-zinc-800 rounded-xl px-4 py-2 text-white outline-none focus:border-[#D4AF37] transition-all"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Tiến độ huy động (%)</label>
+          <div className="flex items-center gap-2 mt-1">
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={progress} 
+              onChange={(e) => setProgress(Number(e.target.value))}
+              className="flex-1 accent-[#D4AF37] h-1"
+            />
+            <span className="text-xs font-bold text-white w-8 text-right">{progress}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Quy mô / Phân khúc</label>
+        <input 
+          type="text" 
+          value={scale} 
+          onChange={(e) => setScale(e.target.value)}
+          className="w-full bg-[#1e293b]/50 border border-zinc-800 rounded-xl px-4 py-2 text-white outline-none focus:border-[#D4AF37] transition-all"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Đường dẫn ảnh (URL)</label>
+        <input 
+          type="text" 
+          value={imageUrl} 
+          onChange={(e) => setImageUrl(e.target.value)}
+          className="w-full bg-[#1e293b]/50 border border-zinc-800 rounded-xl px-4 py-2 text-white outline-none focus:border-[#D4AF37] transition-all"
+        />
+      </div>
+
+      <button 
+        type="button" 
+        onClick={handleSave} 
+        disabled={isSaving}
+        className="w-full bg-gradient-to-r from-[#D4AF37] to-[#ebd5ad] hover:from-[#ebd5ad] hover:to-[#D4AF37] text-black font-black uppercase tracking-wider py-3.5 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(212,175,55,0.2)] active:scale-[0.98] mt-2 cursor-pointer"
+      >
+        {isSaving ? 'Đang lưu...' : 'Lưu cấu hình'}
+      </button>
+    </div>
+  );
+}
+
 export default function AdminConsole({ onBack }: { onBack: () => void }) {
   const userCtx = useContext(UserContext);
   const { cmsBanners, updateCmsBanners, cmsNews, updateCmsNews, cmsVinfast, updateCmsVinfast } = userCtx;
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'users' | 'projects' | 'cms' | 'notifications' | 'support' | 'audit_logs'>('overview');
   const [projectSubTab, setProjectSubTab] = useState<'vinpearl' | 'vinhomes' | 'vinfast' | 'stocks' | 'casino'>('vinpearl');
+
+  const [activeSchedulerGameId, setActiveSchedulerGameId] = useState<string | null>(null);
+  const [newScheduleStart, setNewScheduleStart] = useState('08:00');
+  const [newScheduleEnd, setNewScheduleEnd] = useState('12:00');
+
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingCallback, setEditingCallback] = useState<((id: string, updates: Partial<Project>) => Promise<void>) | null>(null);
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -1314,264 +1449,632 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
             </div>
           )}
 
-          {activeTab === 'projects' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
-              {/* Tiêu đề & Bật/Tắt tổng thể */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-6 gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Trung tâm điều hành dự án</h2>
-                  <p className="text-xs text-zinc-400 mt-1 font-body font-medium">
-                    {projectSubTab === 'vinpearl' && 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Siêu dự án Vinpearl.'}
-                    {projectSubTab === 'vinhomes' && 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Dự án Vinhomes / Quỹ đầu tư.'}
-                    {projectSubTab === 'vinfast' && 'Quản lý thông số, lãi suất góp vốn và tiền tối thiểu của các dòng xe điện VinFast.'}
-                    {projectSubTab === 'stocks' && 'Quản lý giá, tỷ lệ thay đổi và trạng thái giao dịch của các Cổ phiếu Vingroup.'}
-                    {projectSubTab === 'casino' && 'Quản lý trạng thái mở hoặc bảo trì của các trò chơi Casino Corona Phú Quốc.'}
-                  </p>
-                </div>
+          {activeTab === 'projects' && (() => {
+            const vicStock = userCtx.standardStocks.find(s => s.symbol === 'VIC');
+            const vhmStock = userCtx.standardStocks.find(s => s.symbol === 'VHM');
+            return (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto text-zinc-100 font-sans pb-16">
                 
-                {/* Panel bật tắt tổng thể */}
-                <div className="bg-[#001730] border border-[#D4AF37]/30 rounded-2xl p-4 flex items-center justify-between gap-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] min-w-[280px]">
-                  <div className="flex items-center gap-2.5">
-                    {/* Đèn LED tổng thể */}
-                    <span className="relative flex h-3.5 w-3.5">
-                      {(projectSubTab === 'vinpearl' 
-                        ? userCtx.adminProjects.some(p => p.status === 'ACTIVE')
-                        : projectSubTab === 'vinhomes'
-                        ? userCtx.standardProjects.some(p => p.status === 'ACTIVE')
-                        : projectSubTab === 'vinfast'
-                        ? vinfastProjects.some(p => p.status === 'ACTIVE')
-                        : projectSubTab === 'stocks'
-                        ? stockProjects.some(p => p.status === 'ACTIVE')
-                        : casinoProjects.some(p => p.status === 'ACTIVE')
-                      ) && (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      )}
-                      <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
-                        (projectSubTab === 'vinpearl'
-                          ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
-                          : projectSubTab === 'vinhomes'
-                          ? userCtx.standardProjects.every(p => p.status === 'ACTIVE')
-                          : projectSubTab === 'vinfast'
-                          ? vinfastProjects.every(p => p.status === 'ACTIVE')
-                          : projectSubTab === 'stocks'
-                          ? stockProjects.every(p => p.status === 'ACTIVE')
-                          : casinoProjects.every(p => p.status === 'ACTIVE')
-                        )
-                          ? 'bg-emerald-500' 
-                          : (projectSubTab === 'vinpearl'
-                              ? userCtx.adminProjects.some(p => p.status === 'ACTIVE')
-                              : projectSubTab === 'vinhomes'
-                              ? userCtx.standardProjects.some(p => p.status === 'ACTIVE')
-                              : projectSubTab === 'vinfast'
-                              ? vinfastProjects.some(p => p.status === 'ACTIVE')
-                              : projectSubTab === 'stocks'
-                              ? stockProjects.some(p => p.status === 'ACTIVE')
-                              : casinoProjects.some(p => p.status === 'ACTIVE')
-                            )
-                            ? 'bg-amber-500' 
-                            : 'bg-zinc-600'
-                      }`}></span>
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-white tracking-wider">ĐIỀU HÀNH TỔNG THỂ</span>
-                      <span className="text-[10px] text-zinc-400 font-body">
-                        {projectSubTab === 'vinpearl' && `${userCtx.adminProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.adminProjects.length} mở`}
-                        {projectSubTab === 'vinhomes' && `${userCtx.standardProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.standardProjects.length} mở`}
-                        {projectSubTab === 'vinfast' && `${vinfastProjects.filter(p => p.status === 'ACTIVE').length}/${vinfastProjects.length} mở`}
-                        {projectSubTab === 'stocks' && `${stockProjects.filter(p => p.status === 'ACTIVE').length}/${stockProjects.length} mở`}
-                        {projectSubTab === 'casino' && `${casinoProjects.filter(p => p.status === 'ACTIVE').length}/${casinoProjects.length} mở`}
-                      </span>
+                {/* Dashboard Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[#202a40]/60 pb-6 gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-wider font-mono">Trung tâm Điều hành Dự án</h2>
+                    <p className="text-xs text-zinc-400 mt-1 font-body font-medium">
+                      Hệ thống điều hành tổng thể siêu dự án, quỹ đầu tư, can thiệp tỷ giá chứng khoán và quản lý casino.
+                    </p>
+                  </div>
+                  
+                  {/* Search and Profile Controls */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="Search commands..." 
+                        className="bg-[#131824] border border-[#202a40]/60 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-[#D4AF37] w-48 transition-all"
+                      />
+                    </div>
+                    <button className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-[#131824] border border-[#202a40]/60 rounded-xl">
+                      <span className="text-xs">🔔</span>
+                    </button>
+                    <button className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-[#131824] border border-[#202a40]/60 rounded-xl">
+                      <span className="text-xs">⚙️</span>
+                    </button>
+                    <div className="flex items-center gap-2.5 bg-[#131824] border border-[#202a40]/60 rounded-xl px-3 py-1.5">
+                      <div className="w-6 h-6 rounded-full bg-[#D4AF37] text-black flex items-center justify-center font-bold text-[10px]">
+                        AD
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-white leading-none uppercase">Admin User</span>
+                        <span className="text-[8px] text-[#D4AF37] font-semibold tracking-wider mt-0.5 uppercase">MASTER KEY</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stat overview cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* MARKET STATUS */}
+                  <div className="bg-[#131824] border border-[#202a40]/60 rounded-3xl p-5 shadow-lg flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-3">
+                      <span className="text-[#ebd5ad]">📈</span> MARKET STATUS
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#0c0f17]/60 border border-zinc-800/40 rounded-2xl p-4">
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">VIC</div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl font-black text-white">
+                            {vicStock ? (vicStock.price / 1000).toFixed(2) : '45.20'}
+                          </span>
+                          <span className={`text-[10px] font-bold ${vicStock && vicStock.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
+                            {vicStock && vicStock.changePercent >= 0 ? '+' : ''}{vicStock ? vicStock.changePercent.toFixed(2) : '+2.4'}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="bg-[#0c0f17]/60 border border-zinc-800/40 rounded-2xl p-4">
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">VHM</div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl font-black text-white">
+                            {vhmStock ? (vhmStock.price / 1000).toFixed(2) : '41.05'}
+                          </span>
+                          <span className={`text-[10px] font-bold ${vhmStock && vhmStock.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
+                            {vhmStock && vhmStock.changePercent >= 0 ? '+' : ''}{vhmStock ? vhmStock.changePercent.toFixed(2) : '-0.8'}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Toggle tổng thể */}
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (projectSubTab === 'vinpearl') {
-                        const allActive = userCtx.adminProjects.every(p => p.status === 'ACTIVE');
-                        userCtx.updateAllProjectsStatus(allActive ? 'CLOSED' : 'ACTIVE');
-                      } else if (projectSubTab === 'vinhomes') {
-                        const allActive = userCtx.standardProjects.every(p => p.status === 'ACTIVE');
-                        userCtx.updateAllStandardProjectsStatus(allActive ? 'CLOSED' : 'ACTIVE');
-                      } else if (projectSubTab === 'vinfast') {
-                        const allActive = vinfastProjects.every(p => p.status === 'ACTIVE');
-                        userCtx.updateAllVinfastStatus(allActive ? 'CLOSED' : 'ACTIVE');
-                      } else if (projectSubTab === 'stocks') {
-                        const allActive = stockProjects.every(p => p.status === 'ACTIVE');
-                        userCtx.updateAllStocksStatus(allActive ? 'CLOSED' : 'ACTIVE');
-                      } else if (projectSubTab === 'casino') {
-                        const allActive = casinoProjects.every(p => p.status === 'ACTIVE');
-                        userCtx.updateAllCasinoGamesStatus(allActive ? 'CLOSED' : 'ACTIVE');
-                      }
-                    }}
-                    className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      (projectSubTab === 'vinpearl'
-                        ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
-                        : projectSubTab === 'vinhomes'
-                        ? userCtx.standardProjects.every(p => p.status === 'ACTIVE')
-                        : projectSubTab === 'vinfast'
-                        ? vinfastProjects.every(p => p.status === 'ACTIVE')
-                        : projectSubTab === 'stocks'
-                        ? stockProjects.every(p => p.status === 'ACTIVE')
-                        : casinoProjects.every(p => p.status === 'ACTIVE')
-                      ) ? 'bg-emerald-500' : 'bg-zinc-700'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        (projectSubTab === 'vinpearl'
-                          ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
-                          : projectSubTab === 'vinhomes'
-                          ? userCtx.standardProjects.every(p => p.status === 'ACTIVE')
-                          : projectSubTab === 'vinfast'
-                          ? vinfastProjects.every(p => p.status === 'ACTIVE')
-                          : projectSubTab === 'stocks'
-                          ? stockProjects.every(p => p.status === 'ACTIVE')
-                          : casinoProjects.every(p => p.status === 'ACTIVE')
-                        ) ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Sub-tab Switcher (5 Areas) */}
-              <div className="flex flex-wrap gap-2 bg-[#001730]/40 p-1.5 rounded-xl border border-zinc-800/40 w-fit backdrop-blur-md">
-                {(['vinpearl', 'vinhomes', 'vinfast', 'stocks', 'casino'] as const).map(tab => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setProjectSubTab(tab)}
-                    className={`px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                      projectSubTab === tab 
-                        ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_4px_12px_rgba(212,175,55,0.25)] font-black' 
-                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/20'
-                    }`}
-                  >
-                    {tab === 'vinpearl' && 'Vinpearl (Siêu Dự Án)'}
-                    {tab === 'vinhomes' && 'Vinhomes (Quỹ Đầu Tư)'}
-                    {tab === 'vinfast' && 'VinFast (Ủy Thác Xe)'}
-                    {tab === 'stocks' && 'Chứng Khoán'}
-                    {tab === 'casino' && 'Casino Games'}
-                  </button>
-                ))}
-              </div>
-
-              {/* Danh sách Card dự án */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
-                {projectSubTab === 'vinpearl' && (
-                  userCtx.adminProjects.map(p => (
-                    <ProjectEditCard 
-                      key={p.id} 
-                      project={p} 
-                      onSave={userCtx.updateProjectDetails} 
-                    />
-                  ))
-                )}
-                {projectSubTab === 'vinhomes' && (
-                  userCtx.standardProjects.map(p => (
-                    <ProjectEditCard 
-                      key={p.id} 
-                      project={p} 
-                      onSave={userCtx.updateStandardProjectDetails} 
-                    />
-                  ))
-                )}
-                {projectSubTab === 'vinfast' && (
-                  vinfastProjects.map(p => (
-                    <ProjectEditCard 
-                      key={p.id} 
-                      project={p} 
-                      onSave={async (id, updates) => {
-                        const updatedCars = userCtx.cmsVinfast.map((car: any) => {
-                          if (car.title === id) {
-                            const newCar = { ...car };
-                            if (updates.title !== undefined) newCar.title = updates.title;
-                            if (updates.interestRateValue !== undefined) newCar.profit = (updates.interestRateValue * 100).toFixed(1);
-                            if (updates.minInvestAmount !== undefined) newCar.minCapital = updates.minInvestAmount.toLocaleString('vi-VN').replace(/,/g, '.');
-                            if (updates.progress !== undefined) newCar.progress = updates.progress;
-                            if (updates.status !== undefined) newCar.status = updates.status;
-                            return newCar;
-                          }
-                          return car;
-                        });
-                        await userCtx.updateCmsVinfast(updatedCars);
-                      }} 
-                    />
-                  ))
-                )}
-                {projectSubTab === 'stocks' && (
-                  stockProjects.map(p => (
-                    <ProjectEditCard 
-                      key={p.id} 
-                      project={p} 
-                      onSave={async (id, updates) => {
-                        const changes: any = {};
-                        if (updates.minInvestAmount !== undefined) {
-                          changes.price = updates.minInvestAmount;
-                        }
-                        if (updates.interestRateValue !== undefined) {
-                          changes.changePercent = Number((updates.interestRateValue * 100).toFixed(2));
-                          const currentStock = userCtx.standardStocks.find(s => s.symbol === id);
-                          if (currentStock) {
-                            changes.change = Math.round(changes.price * (changes.changePercent / 100));
-                          }
-                        }
-                        if (updates.status !== undefined) {
-                          changes.status = updates.status;
-                        }
-                        if (updates.scale !== undefined) {
-                          changes.volume = updates.scale;
-                        }
-                        if (updates.title !== undefined) {
-                          const nameMatch = updates.title.match(/^(.*?)\s*\(/);
-                          changes.name = nameMatch ? nameMatch[1].trim() : updates.title;
-                        }
-                        await userCtx.updateStockDetails(id, changes);
-                      }} 
-                    />
-                  ))
-                )}
-                {projectSubTab === 'casino' && (
-                  casinoProjects.map(p => (
-                    <ProjectEditCard 
-                      key={p.id} 
-                      project={p} 
-                      onSave={async (id, updates) => {
-                        const changes: any = {};
-                        if (updates.status !== undefined) {
-                          changes.status = updates.status;
-                        }
-                        if (updates.title !== undefined) {
-                          changes.title = updates.title;
-                        }
-                        if (updates.imageUrl !== undefined) {
-                          changes.imageUrl = updates.imageUrl;
-                        }
-                        await userCtx.updateCasinoGameDetails(id, changes);
-                      }} 
-                    />
-                  ))
-                )}
-              </div>
-
-              {/* Nhật ký vận hành */}
-              <div className="bg-[#001F3F] border border-zinc-800 rounded-2xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <History className="w-5 h-5 text-[#D4AF37]" /> Nhật ký vận hành
-                </h3>
-                <div className="space-y-2 text-xs font-mono text-zinc-400 max-h-60 overflow-y-auto scrollbar-hide">
-                  {userCtx.auditLog.map(log => (
-                      <div key={log.id} className="border-b border-zinc-800/40 py-2 flex justify-between items-start gap-4">
-                          <span className="text-[#D4AF37] shrink-0 font-bold">{log.time}</span>
-                          <span className="flex-1 text-zinc-300">{log.adminName}: {log.action}</span>
+                  {/* INVESTMENT OVERVIEW */}
+                  <div className="bg-[#131824] border border-[#202a40]/60 rounded-3xl p-5 shadow-lg flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-3">
+                      <span className="text-[#ebd5ad]">💼</span> INVESTMENT OVERVIEW
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-[#0c0f17]/60 border border-zinc-800/40 rounded-2xl p-3.5 flex flex-col justify-between">
+                        <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">TOTAL PORTFOLIO</span>
+                        <span className="text-lg font-black text-white mt-1">$1.24B</span>
                       </div>
-                  ))}
+                      <div className="bg-[#0c0f17]/60 border border-zinc-800/40 rounded-2xl p-3.5 flex flex-col justify-between">
+                        <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">DAILY VOLUME</span>
+                        <span className="text-lg font-black text-white mt-1">12.5M</span>
+                      </div>
+                      <div className="bg-[#0c0f17]/60 border border-zinc-800/40 rounded-2xl p-3.5 flex flex-col justify-between">
+                        <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">TREND</span>
+                        <span className="text-lg font-black text-[#10b981] mt-1 uppercase tracking-widest font-mono">Bullish</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Category 1: VINPEARL */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 border-b border-[#202a40]/60 pb-3">
+                    <button 
+                      onClick={async () => {
+                        const allActive = userCtx.adminProjects.every(p => p.status === 'ACTIVE');
+                        await userCtx.updateAllProjectsStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      }}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        userCtx.adminProjects.every(p => p.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                        userCtx.adminProjects.every(p => p.status === 'ACTIVE') ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <h3 className="text-sm font-black tracking-widest text-[#ebd5ad] uppercase font-mono flex items-center gap-2">
+                      VINPEARL
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {userCtx.adminProjects.map((p, idx) => {
+                      const isClosed = p.status === 'CLOSED';
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => {
+                            setEditingProject(p);
+                            setEditingCallback(() => userCtx.updateProjectDetails);
+                          }}
+                          className={`group relative aspect-[3/4] rounded-2xl border border-zinc-800 hover:border-[#D4AF37]/50 bg-[#131824] flex flex-col justify-between p-4 cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgba(212,175,55,0.08)] ${isClosed ? 'opacity-70' : ''}`}
+                        >
+                          <div className="flex justify-between items-start w-full">
+                            <span className="text-[10px] font-mono text-zinc-600 font-bold">0{idx + 1}</span>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await userCtx.updateProjectDetails(p.id, { status: isClosed ? 'ACTIVE' : 'CLOSED' });
+                              }}
+                              className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                !isClosed ? 'bg-blue-500 border-blue-500 text-white' : 'border-zinc-700 text-transparent hover:border-zinc-500'
+                              }`}
+                            >
+                              {!isClosed && <span className="text-[10px]">✓</span>}
+                            </button>
+                          </div>
+                          <div className="flex-1 flex items-center my-3">
+                            <h4 className="text-[11px] font-bold text-slate-100 line-clamp-4 leading-relaxed group-hover:text-[#ebd5ad] transition-colors">{p.title}</h4>
+                          </div>
+                          <div className="flex justify-between items-center text-[8px] font-black tracking-widest uppercase">
+                            <span className={isClosed ? 'text-zinc-500' : 'text-blue-400'}>{isClosed ? 'STANDBY' : 'ACTIVE'}</span>
+                            <span className="text-[#D4AF37]/50 opacity-0 group-hover:opacity-100 transition-opacity">EDIT ⚙️</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Category 2: VINHOMES */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-3 border-b border-[#202a40]/60 pb-3">
+                    <button 
+                      onClick={async () => {
+                        const allActive = userCtx.standardProjects.every(p => p.status === 'ACTIVE');
+                        await userCtx.updateAllStandardProjectsStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      }}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        userCtx.standardProjects.every(p => p.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                        userCtx.standardProjects.every(p => p.status === 'ACTIVE') ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <h3 className="text-sm font-black tracking-widest text-[#ebd5ad] uppercase font-mono flex items-center gap-2">
+                      VINHOMES
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {userCtx.standardProjects.map((p, idx) => {
+                      const isClosed = p.status === 'CLOSED';
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => {
+                            setEditingProject(p);
+                            setEditingCallback(() => userCtx.updateStandardProjectDetails);
+                          }}
+                          className={`group relative aspect-[3/4] rounded-2xl border border-zinc-800 hover:border-[#D4AF37]/50 bg-[#131824] flex flex-col justify-between p-4 cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgba(212,175,55,0.08)] ${isClosed ? 'opacity-70' : ''}`}
+                        >
+                          <div className="flex justify-between items-start w-full">
+                            <span className="text-[10px] font-mono text-zinc-600 font-bold">0{idx + 1}</span>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await userCtx.updateStandardProjectDetails(p.id, { status: isClosed ? 'ACTIVE' : 'CLOSED' });
+                              }}
+                              className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                !isClosed ? 'bg-blue-500 border-blue-500 text-white' : 'border-zinc-700 text-transparent hover:border-zinc-500'
+                              }`}
+                            >
+                              {!isClosed && <span className="text-[10px]">✓</span>}
+                            </button>
+                          </div>
+                          <div className="flex-1 flex items-center my-3">
+                            <h4 className="text-[11px] font-bold text-slate-100 line-clamp-4 leading-relaxed group-hover:text-[#ebd5ad] transition-colors">{p.title}</h4>
+                          </div>
+                          <div className="flex justify-between items-center text-[8px] font-black tracking-widest uppercase">
+                            <span className={isClosed ? 'text-zinc-500' : 'text-blue-400'}>{isClosed ? 'STANDBY' : 'ACTIVE'}</span>
+                            <span className="text-[#D4AF37]/50 opacity-0 group-hover:opacity-100 transition-opacity">EDIT ⚙️</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Category 3: STOCK MARKET INTERVENTION (ĐẦU TƯ CHỨNG KHOÁN) */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-3 border-b border-[#202a40]/60 pb-3">
+                    <button 
+                      onClick={async () => {
+                        const allActive = userCtx.standardStocks.every(s => s.status === 'ACTIVE');
+                        await userCtx.updateAllStocksStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      }}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        userCtx.standardStocks.every(s => s.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                        userCtx.standardStocks.every(s => s.status === 'ACTIVE') ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <h3 className="text-sm font-black tracking-widest text-[#ebd5ad] uppercase font-mono flex items-center gap-2">
+                      STOCK MARKET INTERVENTION (ĐẦU TƯ CHỨNG KHOÁN)
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {['VIC', 'VHM', 'VFS'].map(symbol => {
+                      const stock = userCtx.standardStocks.find(s => s.symbol === symbol);
+                      if (!stock) return null;
+                      const isWinMode = !!stock.winMode;
+                      const isClosed = stock.status === 'CLOSED';
+
+                      return (
+                        <div 
+                          key={stock.symbol}
+                          onClick={() => {
+                            setEditingProject({
+                              id: stock.symbol,
+                              title: `${stock.name} (${stock.symbol})`,
+                              imageUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=500&auto=format&fit=crop',
+                              interestRate: `${stock.changePercent}%`,
+                              duration: '1 ngày',
+                              minAmount: `${stock.price.toLocaleString()} VNĐ`,
+                              scale: stock.volume,
+                              progress: 100,
+                              category: 'Chứng khoán',
+                              durationDays: 1,
+                              minInvestAmount: stock.price,
+                              interestRateValue: stock.changePercent / 100,
+                              status: stock.status
+                            });
+                            setEditingCallback(() => async (id, updates) => {
+                              const changes: any = {};
+                              if (updates.minInvestAmount !== undefined) changes.price = updates.minInvestAmount;
+                              if (updates.interestRateValue !== undefined) {
+                                changes.changePercent = Number((updates.interestRateValue * 100).toFixed(2));
+                                changes.change = Math.round(changes.price * (changes.changePercent / 100));
+                              }
+                              if (updates.title !== undefined) {
+                                const nameMatch = updates.title.match(/^(.*?)\s*\(/);
+                                changes.name = nameMatch ? nameMatch[1].trim() : updates.title;
+                              }
+                              if (updates.scale !== undefined) changes.volume = updates.scale;
+                              await userCtx.updateStockDetails(id, changes);
+                            });
+                          }}
+                          className={`bg-[#131824] border border-[#202a40]/60 rounded-3xl p-5 flex flex-col justify-between min-h-[160px] relative transition-all duration-300 hover:border-[#D4AF37]/40 hover:shadow-[0_8px_30px_rgba(212,175,55,0.05)] cursor-pointer ${isClosed ? 'opacity-70' : ''}`}
+                        >
+                          <div className="flex justify-between items-start w-full">
+                            <span className="text-xl font-black text-white tracking-widest">{stock.symbol}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${isWinMode ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}>
+                              {isWinMode ? 'WIN MODE ACTIVE' : 'NORMAL'}
+                            </span>
+                          </div>
+
+                          <div className="my-3">
+                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">MARKET INTERVENTION</span>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-[#0c0f17]/80 border border-zinc-800/40 rounded-xl p-3 mt-1" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-[#ebd5ad] tracking-wider uppercase leading-none">WIN MODE</span>
+                              <span className="text-[8px] text-zinc-500 mt-1">Force market to winning state</span>
+                            </div>
+                            
+                            <button
+                              onClick={async () => {
+                                await userCtx.updateStockDetails(stock.symbol, { winMode: !isWinMode });
+                              }}
+                              className={`relative inline-flex h-5.5 w-10 flex-shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                isWinMode ? 'bg-[#D4AF37]' : 'bg-zinc-700'
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                                  isWinMode ? 'translate-x-4.5' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Category 4: VINFAST */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-3 border-b border-[#202a40]/60 pb-3">
+                    <button 
+                      onClick={async () => {
+                        const allActive = vinfastProjects.every(p => p.status === 'ACTIVE');
+                        await userCtx.updateAllVinfastStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      }}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        vinfastProjects.every(p => p.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                        vinfastProjects.every(p => p.status === 'ACTIVE') ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <h3 className="text-sm font-black tracking-widest text-[#ebd5ad] uppercase font-mono flex items-center gap-2">
+                      VINFAST
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {vinfastProjects.map((p, idx) => {
+                      const isClosed = p.status === 'CLOSED';
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => {
+                            setEditingProject(p);
+                            setEditingCallback(() => async (id, updates) => {
+                              const updatedCars = userCtx.cmsVinfast.map((car: any) => {
+                                if (car.title === id) {
+                                  const newCar = { ...car };
+                                  if (updates.title !== undefined) newCar.title = updates.title;
+                                  if (updates.interestRateValue !== undefined) newCar.profit = (updates.interestRateValue * 100).toFixed(1);
+                                  if (updates.minInvestAmount !== undefined) newCar.minCapital = updates.minInvestAmount.toLocaleString('vi-VN').replace(/,/g, '.');
+                                  if (updates.progress !== undefined) newCar.progress = updates.progress;
+                                  if (updates.status !== undefined) newCar.status = updates.status;
+                                  if (updates.scale !== undefined) newCar.kw = updates.scale.replace(/\D/g, '');
+                                  return newCar;
+                                }
+                                return car;
+                              });
+                              await userCtx.updateCmsVinfast(updatedCars);
+                            });
+                          }}
+                          className={`group relative aspect-[3/4] rounded-2xl border border-zinc-800 hover:border-[#D4AF37]/50 bg-[#131824] flex flex-col justify-between p-4 cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgba(212,175,55,0.08)] ${isClosed ? 'opacity-70' : ''}`}
+                        >
+                          <div className="flex justify-between items-start w-full">
+                            <span className="text-[10px] font-mono text-zinc-600 font-bold">0{idx + 1}</span>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const updatedCars = userCtx.cmsVinfast.map((car: any) => {
+                                  if (car.title === p.id) {
+                                    return { ...car, status: isClosed ? 'ACTIVE' : 'CLOSED' };
+                                  }
+                                  return car;
+                                });
+                                await userCtx.updateCmsVinfast(updatedCars);
+                              }}
+                              className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                !isClosed ? 'bg-blue-500 border-blue-500 text-white' : 'border-zinc-700 text-transparent hover:border-zinc-500'
+                              }`}
+                            >
+                              {!isClosed && <span className="text-[10px]">✓</span>}
+                            </button>
+                          </div>
+                          <div className="flex-1 flex items-center my-3">
+                            <h4 className="text-[12px] font-black text-slate-100 uppercase tracking-widest leading-relaxed group-hover:text-[#ebd5ad] transition-colors">{p.title}</h4>
+                          </div>
+                          <div className="flex justify-between items-center text-[8px] font-black tracking-widest uppercase">
+                            <span className={isClosed ? 'text-zinc-500' : 'text-blue-400'}>{isClosed ? 'STANDBY' : 'ACTIVE'}</span>
+                            <span className="text-[#D4AF37]/50 opacity-0 group-hover:opacity-100 transition-opacity">EDIT ⚙️</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Category 5: CASINO MANAGEMENT (QUẢN LÝ CASINO) */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-3 border-b border-[#202a40]/60 pb-3">
+                    <button 
+                      onClick={async () => {
+                        const allActive = userCtx.casinoGames.every(g => g.status === 'ACTIVE');
+                        await userCtx.updateAllCasinoGamesStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      }}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        userCtx.casinoGames.every(g => g.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                        userCtx.casinoGames.every(g => g.status === 'ACTIVE') ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <h3 className="text-sm font-black tracking-widest text-[#ebd5ad] uppercase font-mono flex items-center gap-2">
+                      CASINO MANAGEMENT (QUẢN LÝ CASINO)
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {userCtx.casinoGames.map(game => {
+                      const isClosed = game.status === 'CLOSED';
+                      const payout = game.payoutRatio || '1:1.2';
+                      const schedules = game.schedule || [];
+                      const isSchedulerOpen = activeSchedulerGameId === game.id;
+
+                      const handleToggleBetStatus = async () => {
+                        await userCtx.updateCasinoGameDetails(game.id, {
+                          status: isClosed ? 'ACTIVE' : 'CLOSED'
+                        });
+                      };
+
+                      const handleAddSchedule = async () => {
+                        const timeString = `${newScheduleStart} - ${newScheduleEnd}`;
+                        if (schedules.includes(timeString)) return;
+                        const updatedSchedules = [...schedules, timeString];
+                        await userCtx.updateCasinoGameDetails(game.id, {
+                          schedule: updatedSchedules
+                        });
+                        setActiveSchedulerGameId(null);
+                      };
+
+                      const handleDeleteSchedule = async (timeToRemove: string) => {
+                        const updatedSchedules = schedules.filter(s => s !== timeToRemove);
+                        await userCtx.updateCasinoGameDetails(game.id, {
+                          schedule: updatedSchedules
+                        });
+                      };
+
+                      const handleSelectPayout = async (ratio: '1:1' | '1:1.2' | '1:1.5') => {
+                        await userCtx.updateCasinoGameDetails(game.id, {
+                          payoutRatio: ratio
+                        });
+                      };
+
+                      return (
+                        <div 
+                          key={game.id}
+                          className="bg-[#131824] border border-[#202a40]/60 rounded-3xl p-5 flex flex-col justify-between min-h-[300px] transition-all duration-300 hover:border-[#D4AF37]/35"
+                        >
+                          {/* Header: Title & Status pill */}
+                          <div className="flex justify-between items-center w-full mb-4">
+                            <span className="text-sm font-black text-slate-100 uppercase tracking-wider">{game.title}</span>
+                            <button
+                              type="button"
+                              onClick={handleToggleBetStatus}
+                              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-all ${
+                                !isClosed 
+                                  ? 'bg-emerald-500/10 text-[#10b981] border-emerald-500/20' 
+                                  : 'bg-rose-500/10 text-[#f43f5e] border-rose-500/20'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${!isClosed ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                              {!isClosed ? 'MỞ CƯỢC' : 'ĐÓNG CƯỢC'}
+                            </button>
+                          </div>
+
+                          {/* Scheduler section */}
+                          <div className="bg-[#0c0f17]/60 border border-zinc-800/40 rounded-2xl p-4 flex-1 flex flex-col justify-between mb-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider flex items-center gap-1 font-mono">
+                                ⏰ HẸN GIỜ TỰ ĐỘNG
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isSchedulerOpen) {
+                                    setActiveSchedulerGameId(null);
+                                  } else {
+                                    setActiveSchedulerGameId(game.id);
+                                  }
+                                }}
+                                className="text-[#D4AF37] hover:text-[#ebd5ad] font-bold text-sm"
+                              >
+                                {isSchedulerOpen ? '✕' : '＋'}
+                              </button>
+                            </div>
+
+                            {/* Scheduler list / form */}
+                            <div className="flex-1 flex flex-col justify-center space-y-2">
+                              {isSchedulerOpen ? (
+                                <div className="space-y-2 p-2 bg-zinc-950/80 border border-zinc-800/50 rounded-xl">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <input 
+                                      type="text" 
+                                      value={newScheduleStart}
+                                      onChange={(e) => setNewScheduleStart(e.target.value)}
+                                      placeholder="08:00"
+                                      className="w-16 bg-[#131824] border border-zinc-800 text-[10px] text-white text-center rounded py-1 outline-none focus:border-[#D4AF37]"
+                                    />
+                                    <span className="text-zinc-500 text-[10px]">đến</span>
+                                    <input 
+                                      type="text" 
+                                      value={newScheduleEnd}
+                                      onChange={(e) => setNewScheduleEnd(e.target.value)}
+                                      placeholder="12:00"
+                                      className="w-16 bg-[#131824] border border-zinc-800 text-[10px] text-white text-center rounded py-1 outline-none focus:border-[#D4AF37]"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={handleAddSchedule}
+                                    className="w-full bg-[#D4AF37] text-black text-[9px] font-black uppercase tracking-wider rounded py-1 hover:bg-[#ebd5ad] transition-all"
+                                  >
+                                    Thêm
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap gap-1.5 items-center justify-start min-h-[40px]">
+                                  {schedules.map(timeStr => (
+                                    <span 
+                                      key={timeStr} 
+                                      className="flex items-center gap-1 px-2.5 py-1 bg-zinc-950/80 border border-zinc-850 rounded-lg text-[9px] text-zinc-300 font-mono font-bold"
+                                    >
+                                      {timeStr}
+                                      <button 
+                                        type="button"
+                                        onClick={() => handleDeleteSchedule(timeStr)}
+                                        className="text-rose-500 hover:text-rose-400 font-bold ml-1 text-[8px]"
+                                      >
+                                        ✕
+                                      </button>
+                                    </span>
+                                  ))}
+                                  {schedules.length === 0 && (
+                                    <span className="text-[10px] text-zinc-500 font-medium italic">Chưa có lịch trình</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Payout ratio section */}
+                          <div>
+                            <span className="text-[9px] text-[#94a3b8] font-bold uppercase tracking-wider block mb-2">PAYOUT RATIO (TỶ LỆ TRẢ THƯỞNG)</span>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(['1:1', '1:1.2', '1:1.5'] as const).map(ratio => (
+                                <button
+                                  key={ratio}
+                                  type="button"
+                                  onClick={() => handleSelectPayout(ratio)}
+                                  className={`py-2 rounded-xl text-[10px] font-bold transition-all border ${
+                                    payout === ratio 
+                                      ? 'bg-[#D4AF37]/10 text-[#ebd5ad] border-[#D4AF37]' 
+                                      : 'bg-[#0c0f17]/40 text-zinc-400 border-zinc-800/80 hover:text-zinc-200'
+                                  }`}
+                                >
+                                  {ratio}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Project Parameters Edit Modal */}
+                {editingProject && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in" onClick={() => setEditingProject(null)}>
+                    <div className="bg-[#131824] border border-[#D4AF37]/30 rounded-3xl p-6 max-w-lg w-full shadow-[0_20px_50px_rgba(212,175,55,0.15)] space-y-5 animate-in scale-in duration-300" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+                        <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                          <span className="text-[#D4AF37]">⚙️</span> Cấu hình dự án
+                        </h3>
+                        <button 
+                          onClick={() => setEditingProject(null)} 
+                          className="text-zinc-400 hover:text-white transition-colors p-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <ProjectEditParamsForm 
+                        project={editingProject} 
+                        onSave={async (id, updates) => {
+                          if (editingCallback) {
+                            await editingCallback(id, updates);
+                          }
+                          setEditingProject(null);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Nhật ký vận hành */}
+                <div className="bg-[#131824] border border-[#202a40]/60 rounded-3xl p-6 shadow-lg">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 font-mono">
+                    <History className="w-5 h-5 text-[#D4AF37]" /> NHẬT KÝ VẬN HÀNH
+                  </h3>
+                  <div className="space-y-2 text-xs font-mono text-zinc-400 max-h-60 overflow-y-auto scrollbar-hide">
+                    {userCtx.auditLog.map(log => (
+                        <div key={log.id} className="border-b border-zinc-800/40 py-2 flex justify-between items-start gap-4">
+                            <span className="text-[#D4AF37] shrink-0 font-bold">{log.time}</span>
+                            <span className="flex-1 text-zinc-300">{log.adminName}: {log.action}</span>
+                        </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'cms' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
