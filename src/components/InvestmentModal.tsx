@@ -39,6 +39,10 @@ export default function InvestmentModal({ project, onClose }: { project: Project
 
   // Move from step 1 (Amount) to step 2 (Payment method selection / balance check)
   const handleProceedToPayment = () => {
+    if (project.status === 'CLOSED') {
+      setErrorMsg('Dự án đã đóng cổng nhận vốn đầu tư.');
+      return;
+    }
     if (amount < project.minInvestAmount) {
       setErrorMsg(`Số tiền đầu tư tối thiểu là ${formatCurrency(project.minInvestAmount)}.`);
       return;

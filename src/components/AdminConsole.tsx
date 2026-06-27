@@ -287,6 +287,7 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
   const userCtx = useContext(UserContext);
   const { cmsBanners, updateCmsBanners, cmsNews, updateCmsNews, cmsVinfast, updateCmsVinfast } = userCtx;
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'users' | 'projects' | 'cms' | 'notifications' | 'support' | 'audit_logs'>('overview');
+  const [projectSubTab, setProjectSubTab] = useState<'vinpearl' | 'vinhomes'>('vinpearl');
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -1280,7 +1281,11 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
               <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-6 gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Trung tâm điều hành dự án</h2>
-                  <p className="text-xs text-zinc-400 mt-1 font-body">Quản lý trạng thái, lãi suất, số tiền đầu tư tối thiểu và thông tin các siêu dự án.</p>
+                  <p className="text-xs text-zinc-400 mt-1 font-body">
+                    {projectSubTab === 'vinpearl' 
+                      ? 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Siêu dự án Vinpearl.' 
+                      : 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Dự án Vinhomes / Quỹ đầu tư.'}
+                  </p>
                 </div>
                 
                 {/* Panel bật tắt tổng thể */}
@@ -1288,21 +1293,33 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                   <div className="flex items-center gap-2.5">
                     {/* Đèn LED tổng thể */}
                     <span className="relative flex h-3.5 w-3.5">
-                      {userCtx.adminProjects.some(p => p.status === 'ACTIVE') && (
+                      {(projectSubTab === 'vinpearl' 
+                        ? userCtx.adminProjects.some(p => p.status === 'ACTIVE')
+                        : userCtx.standardProjects.some(p => p.status === 'ACTIVE')
+                      ) && (
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       )}
                       <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
-                        userCtx.adminProjects.every(p => p.status === 'ACTIVE') 
+                        (projectSubTab === 'vinpearl'
+                          ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
+                          : userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                        )
                           ? 'bg-emerald-500' 
-                          : userCtx.adminProjects.some(p => p.status === 'ACTIVE')
-                          ? 'bg-amber-500' 
-                          : 'bg-zinc-600'
+                          : (projectSubTab === 'vinpearl'
+                              ? userCtx.adminProjects.some(p => p.status === 'ACTIVE')
+                              : userCtx.standardProjects.some(p => p.status === 'ACTIVE')
+                            )
+                            ? 'bg-amber-500' 
+                            : 'bg-zinc-600'
                       }`}></span>
                     </span>
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-white tracking-wider">ĐIỀU HÀNH TỔNG THỂ</span>
                       <span className="text-[10px] text-zinc-400 font-body">
-                        {userCtx.adminProjects.filter(p => p.status === 'ACTIVE').length}/{userCtx.adminProjects.length} dự án đang mở
+                        {projectSubTab === 'vinpearl'
+                          ? `${userCtx.adminProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.adminProjects.length} dự án mở`
+                          : `${userCtx.standardProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.standardProjects.length} dự án mở`
+                        }
                       </span>
                     </div>
                   </div>
@@ -1311,32 +1328,80 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                   <button 
                     type="button"
                     onClick={() => {
-                      const allActive = userCtx.adminProjects.every(p => p.status === 'ACTIVE');
-                      const targetStatus = allActive ? 'CLOSED' : 'ACTIVE';
-                      userCtx.updateAllProjectsStatus(targetStatus);
+                      if (projectSubTab === 'vinpearl') {
+                        const allActive = userCtx.adminProjects.every(p => p.status === 'ACTIVE');
+                        const targetStatus = allActive ? 'CLOSED' : 'ACTIVE';
+                        userCtx.updateAllProjectsStatus(targetStatus);
+                      } else {
+                        const allActive = userCtx.standardProjects.every(p => p.status === 'ACTIVE');
+                        const targetStatus = allActive ? 'CLOSED' : 'ACTIVE';
+                        userCtx.updateAllStandardProjectsStatus(targetStatus);
+                      }
                     }}
                     className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      userCtx.adminProjects.every(p => p.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                      (projectSubTab === 'vinpearl'
+                        ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
+                        : userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                      ) ? 'bg-emerald-500' : 'bg-zinc-700'
                     }`}
                   >
                     <span
                       className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        userCtx.adminProjects.every(p => p.status === 'ACTIVE') ? 'translate-x-5' : 'translate-x-0'
+                        (projectSubTab === 'vinpearl'
+                          ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
+                          : userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                        ) ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
                   </button>
                 </div>
               </div>
 
+              {/* Sub-tab Switcher */}
+              <div className="flex gap-2 bg-[#001730]/40 p-1.5 rounded-xl border border-zinc-800/40 w-fit backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => setProjectSubTab('vinpearl')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                    projectSubTab === 'vinpearl' 
+                      ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_4px_12px_rgba(212,175,55,0.25)] font-black' 
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/20'
+                  }`}
+                >
+                  Mục Vinpearl (Siêu Dự Án)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProjectSubTab('vinhomes')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                    projectSubTab === 'vinhomes' 
+                      ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_4px_12px_rgba(212,175,55,0.25)] font-black' 
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/20'
+                  }`}
+                >
+                  Mục Vinhomes (Dự Án Đầu Tư)
+                </button>
+              </div>
+
               {/* Danh sách Card dự án */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {userCtx.adminProjects.map(p => (
-                  <ProjectEditCard 
-                    key={p.id} 
-                    project={p} 
-                    onSave={userCtx.updateProjectDetails} 
-                  />
-                ))}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
+                {projectSubTab === 'vinpearl' ? (
+                  userCtx.adminProjects.map(p => (
+                    <ProjectEditCard 
+                      key={p.id} 
+                      project={p} 
+                      onSave={userCtx.updateProjectDetails} 
+                    />
+                  ))
+                ) : (
+                  userCtx.standardProjects.map(p => (
+                    <ProjectEditCard 
+                      key={p.id} 
+                      project={p} 
+                      onSave={userCtx.updateStandardProjectDetails} 
+                    />
+                  ))
+                )}
               </div>
 
               {/* Nhật ký vận hành */}

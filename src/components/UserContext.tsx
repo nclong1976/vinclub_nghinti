@@ -116,6 +116,9 @@ type UserContextType = {
   updateProjectStatus: (projectId: string, newStatus: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED') => Promise<void>;
   updateProjectDetails: (projectId: string, updates: Partial<Project>) => Promise<void>;
   updateAllProjectsStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
+  standardProjects: Project[];
+  updateStandardProjectDetails: (projectId: string, updates: Partial<Project>) => Promise<void>;
+  updateAllStandardProjectsStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
   portfolio: PortfolioItem[];
   orderHistory: Order[];
   placeOrder: (symbol: string, quantity: number, price: number, type: 'buy' | 'sell') => Promise<{ success: boolean, message?: string }>;
@@ -181,6 +184,9 @@ export const UserContext = createContext<UserContextType>({
   updateProjectStatus: async () => {},
   updateProjectDetails: async () => {},
   updateAllProjectsStatus: async () => {},
+  standardProjects: [],
+  updateStandardProjectDetails: async () => {},
+  updateAllStandardProjectsStatus: async () => {},
   portfolio: [],
   orderHistory: [],
   placeOrder: async () => ({ success: false, message: 'Not implemented' }),
@@ -311,6 +317,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     { title: 'VF 9', kw: '300', profit: '1.8', minCapital: '200.000.000' },
   ]);
   const [portfolio, setPortfolioState] = useState<PortfolioItem[]>([]);
+  const [standardProjects, setStandardProjects] = useState<Project[]>([]);
   const [orderHistory, setOrderHistoryState] = useState<Order[]>([]);
   const [keepNotes, setKeepNotesState] = useState<KeepNote[]>([]);
   const [adminProjects, setAdminProjectsState] = useState<Project[]>(() => [
@@ -1011,6 +1018,111 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }, { merge: true });
     } catch (e) {
       console.error("Error updating all projects status:", e);
+    }
+  };
+
+  // Real-time listener for standard projects
+  useEffect(() => {
+    const q = query(collection(db, "projects"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const projectsData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            status: data.status || 'ACTIVE',
+            ...data 
+          } as Project;
+        });
+        projectsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        setStandardProjects(projectsData);
+      } else {
+        import('../data').then(({ projects: localProjects }) => {
+          setStandardProjects(localProjects.map(p => ({ ...p, status: 'ACTIVE' })));
+        });
+      }
+    }, (err) => {
+      console.error("Error listening to standard projects:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const updateStandardProjectDetails = async (projectId: string, updates: Partial<Project>) => {
+    const projectToUpdate = standardProjects.find(p => p.id === projectId);
+    if (!projectToUpdate) return;
+    
+    const merged = { ...projectToUpdate, ...updates } as any;
+    
+    // Auto convert formatting strings
+    if (updates.interestRateValue !== undefined) {
+      merged.interestRate = `${(updates.interestRateValue * 100).toFixed(2)} %`;
+    }
+    if (updates.minInvestAmount !== undefined) {
+      const num = updates.minInvestAmount;
+      if (num >= 1000000000) {
+        merged.minAmount = `${(num / 1000000000).toFixed(1)} Tỷ VNĐ`;
+      } else if (num >= 1000000) {
+        merged.minAmount = `${(num / 1000000).toFixed(0)}.000.000 VNĐ`;
+      } else {
+        merged.minAmount = `${num.toLocaleString('vi-VN')} VNĐ`;
+      }
+    }
+    if (updates.durationDays !== undefined) {
+      merged.duration = `${updates.durationDays * 1440} phút`;
+    }
+    
+    const docRef = doc(db, "projects", projectId);
+    try {
+      await setDoc(docRef, merged, { merge: true });
+      
+      const changeLogs: string[] = [];
+      if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
+      if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(2)}%`);
+      if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
+      if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
+      if (updates.progress !== undefined) changeLogs.push(`tiến độ -> ${updates.progress}%`);
+      
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Sửa dự án Vinhomes "${projectToUpdate.title}": ${changeLogs.join(', ')}`
+      };
+      
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      
+      await setDoc(doc(db, 'system', 'project_control'), {
+        auditLog: updatedLog
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error updating standard project:", e);
+      throw e;
+    }
+  };
+
+  const updateAllStandardProjectsStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
+    try {
+      const batch = writeBatch(db);
+      standardProjects.forEach(p => {
+        batch.update(doc(db, "projects", p.id), { status: newStatus });
+      });
+      await batch.commit();
+      
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Bật/Tắt đồng loạt tất cả dự án Vinhomes sang: ${newStatus}`
+      };
+      
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      await setDoc(doc(db, 'system', 'project_control'), {
+        auditLog: updatedLog
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error toggling all standard projects status:", e);
     }
   };
 
@@ -1891,10 +2003,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateCmsBanners,
       updateCmsVinfast,
       adminProjects,
+      standardProjects,
       auditLog,
       updateProjectStatus,
       updateProjectDetails,
       updateAllProjectsStatus,
+      updateStandardProjectDetails,
+      updateAllStandardProjectsStatus,
       portfolio,
       orderHistory,
       placeOrder,
