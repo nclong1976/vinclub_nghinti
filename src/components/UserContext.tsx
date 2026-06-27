@@ -119,6 +119,13 @@ type UserContextType = {
   standardProjects: Project[];
   updateStandardProjectDetails: (projectId: string, updates: Partial<Project>) => Promise<void>;
   updateAllStandardProjectsStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
+  standardStocks: Stock[];
+  casinoGames: CasinoGame[];
+  updateStockDetails: (symbol: string, updates: Partial<Stock>) => Promise<void>;
+  updateCasinoGameDetails: (id: string, updates: Partial<CasinoGame>) => Promise<void>;
+  updateAllStocksStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
+  updateAllCasinoGamesStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
+  updateAllVinfastStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
   portfolio: PortfolioItem[];
   orderHistory: Order[];
   placeOrder: (symbol: string, quantity: number, price: number, type: 'buy' | 'sell') => Promise<{ success: boolean, message?: string }>;
@@ -187,6 +194,13 @@ export const UserContext = createContext<UserContextType>({
   standardProjects: [],
   updateStandardProjectDetails: async () => {},
   updateAllStandardProjectsStatus: async () => {},
+  standardStocks: [],
+  casinoGames: [],
+  updateStockDetails: async () => {},
+  updateCasinoGameDetails: async () => {},
+  updateAllStocksStatus: async () => {},
+  updateAllCasinoGamesStatus: async () => {},
+  updateAllVinfastStatus: async () => {},
   portfolio: [],
   orderHistory: [],
   placeOrder: async () => ({ success: false, message: 'Not implemented' }),
@@ -318,6 +332,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   ]);
   const [portfolio, setPortfolioState] = useState<PortfolioItem[]>([]);
   const [standardProjects, setStandardProjects] = useState<Project[]>([]);
+  const [standardStocks, setStandardStocks] = useState<Stock[]>([]);
+  const [casinoGames, setCasinoGames] = useState<CasinoGame[]>([]);
   const [orderHistory, setOrderHistoryState] = useState<Order[]>([]);
   const [keepNotes, setKeepNotesState] = useState<KeepNote[]>([]);
   const [adminProjects, setAdminProjectsState] = useState<Project[]>(() => [
@@ -1123,6 +1139,161 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }, { merge: true });
     } catch (e) {
       console.error("Error toggling all standard projects status:", e);
+    }
+  };
+
+  // Real-time listener for standard stocks
+  useEffect(() => {
+    const q = query(collection(db, "stocks"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const stocksData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            symbol: doc.id, 
+            status: data.status || 'ACTIVE',
+            ...data 
+          } as Stock;
+        });
+        setStandardStocks(stocksData);
+      } else {
+        import('../data').then(({ stocks: localStocks }) => {
+          setStandardStocks(localStocks.map(s => ({ ...s, status: 'ACTIVE' })));
+        });
+      }
+    }, (err) => {
+      console.error("Error listening to stocks:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time listener for casino games
+  useEffect(() => {
+    const q = query(collection(db, "casinoGames"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const gamesData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            status: data.status || 'ACTIVE',
+            ...data 
+          } as CasinoGame;
+        });
+        gamesData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        setCasinoGames(gamesData);
+      } else {
+        import('../data').then(({ casinoGames: localGames }) => {
+          setCasinoGames(localGames.map(g => ({ ...g, status: 'ACTIVE' })));
+        });
+      }
+    }, (err) => {
+      console.error("Error listening to casinoGames:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const updateStockDetails = async (symbol: string, updates: Partial<Stock>) => {
+    const docRef = doc(db, "stocks", symbol);
+    try {
+      await setDoc(docRef, updates, { merge: true });
+      
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Sửa cổ phiếu ${symbol}: ${JSON.stringify(updates)}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
+
+  const updateCasinoGameDetails = async (id: string, updates: Partial<CasinoGame>) => {
+    const docRef = doc(db, "casinoGames", id);
+    try {
+      await setDoc(docRef, updates, { merge: true });
+      
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Sửa game Casino ID ${id}: ${JSON.stringify(updates)}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
+
+  const updateAllStocksStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
+    try {
+      const batch = writeBatch(db);
+      standardStocks.forEach(s => {
+        batch.update(doc(db, "stocks", s.symbol), { status: newStatus });
+      });
+      await batch.commit();
+      
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Bật/Tắt đồng loạt tất cả Cổ phiếu sang: ${newStatus}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const updateAllCasinoGamesStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
+    try {
+      const batch = writeBatch(db);
+      casinoGames.forEach(g => {
+        batch.update(doc(db, "casinoGames", g.id), { status: newStatus });
+      });
+      await batch.commit();
+      
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Bật/Tắt đồng loạt tất cả game Casino sang: ${newStatus}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const updateAllVinfastStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
+    try {
+      const updatedCars = cmsVinfast.map(car => ({ ...car, status: newStatus }));
+      await setDoc(doc(db, 'settings', 'cms_data'), { vinfast: updatedCars }, { merge: true });
+      setCmsVinfastState(updatedCars);
+
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Bật/Tắt đồng loạt tất cả xe VinFast sang: ${newStatus}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -2004,12 +2175,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateCmsVinfast,
       adminProjects,
       standardProjects,
+      standardStocks,
+      casinoGames,
       auditLog,
       updateProjectStatus,
       updateProjectDetails,
       updateAllProjectsStatus,
       updateStandardProjectDetails,
       updateAllStandardProjectsStatus,
+      updateStockDetails,
+      updateCasinoGameDetails,
+      updateAllStocksStatus,
+      updateAllCasinoGamesStatus,
+      updateAllVinfastStatus,
       portfolio,
       orderHistory,
       placeOrder,

@@ -287,7 +287,7 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
   const userCtx = useContext(UserContext);
   const { cmsBanners, updateCmsBanners, cmsNews, updateCmsNews, cmsVinfast, updateCmsVinfast } = userCtx;
   const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'users' | 'projects' | 'cms' | 'notifications' | 'support' | 'audit_logs'>('overview');
-  const [projectSubTab, setProjectSubTab] = useState<'vinpearl' | 'vinhomes'>('vinpearl');
+  const [projectSubTab, setProjectSubTab] = useState<'vinpearl' | 'vinhomes' | 'vinfast' | 'stocks' | 'casino'>('vinpearl');
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -304,6 +304,45 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
     updateCmsVinfast(localVinfast);
     alert('Đã lưu thay đổi thông số xe!');
   };
+
+  const vinfastProjects = (userCtx.cmsVinfast || []).map((car: any) => ({
+    id: car.title,
+    title: car.title,
+    imageUrl: `https://vinfastauto.com/themes/porto/img/homepage-v2/car/${car.title.replace(' ', '')}.webp`,
+    interestRateValue: parseFloat(car.profit) / 100,
+    minInvestAmount: parseFloat(car.minCapital.replace(/\./g, '') || '0'),
+    progress: car.progress !== undefined ? car.progress : 100,
+    status: car.status || 'ACTIVE',
+    category: 'VinFast',
+    scale: `${car.kw} kW`,
+    durationDays: 365
+  } as Project));
+
+  const stockProjects = (userCtx.standardStocks || []).map((stock: any) => ({
+    id: stock.symbol,
+    title: `${stock.name} (${stock.symbol})`,
+    imageUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=500&auto=format&fit=crop',
+    interestRateValue: (stock.changePercent || 0) / 100,
+    minInvestAmount: stock.price || 0,
+    progress: 100,
+    status: stock.status || 'ACTIVE',
+    category: 'Chứng khoán',
+    scale: stock.volume || '0',
+    durationDays: 1
+  } as Project));
+
+  const casinoProjects = (userCtx.casinoGames || []).map((game: any) => ({
+    id: game.id,
+    title: game.title,
+    imageUrl: game.imageUrl,
+    interestRateValue: 0,
+    minInvestAmount: 0,
+    progress: 100,
+    status: game.status || 'ACTIVE',
+    category: 'Casino Corona',
+    scale: 'Casino Game',
+    durationDays: 1
+  } as Project));
   
   const handleApproveTransaction = async (
     transaction: any,
@@ -1281,10 +1320,12 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
               <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-6 gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Trung tâm điều hành dự án</h2>
-                  <p className="text-xs text-zinc-400 mt-1 font-body">
-                    {projectSubTab === 'vinpearl' 
-                      ? 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Siêu dự án Vinpearl.' 
-                      : 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Dự án Vinhomes / Quỹ đầu tư.'}
+                  <p className="text-xs text-zinc-400 mt-1 font-body font-medium">
+                    {projectSubTab === 'vinpearl' && 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Siêu dự án Vinpearl.'}
+                    {projectSubTab === 'vinhomes' && 'Quản lý trạng thái, lãi suất, tiền tối thiểu và tiến độ của các Dự án Vinhomes / Quỹ đầu tư.'}
+                    {projectSubTab === 'vinfast' && 'Quản lý thông số, lãi suất góp vốn và tiền tối thiểu của các dòng xe điện VinFast.'}
+                    {projectSubTab === 'stocks' && 'Quản lý giá, tỷ lệ thay đổi và trạng thái giao dịch của các Cổ phiếu Vingroup.'}
+                    {projectSubTab === 'casino' && 'Quản lý trạng thái mở hoặc bảo trì của các trò chơi Casino Corona Phú Quốc.'}
                   </p>
                 </div>
                 
@@ -1295,19 +1336,37 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                     <span className="relative flex h-3.5 w-3.5">
                       {(projectSubTab === 'vinpearl' 
                         ? userCtx.adminProjects.some(p => p.status === 'ACTIVE')
-                        : userCtx.standardProjects.some(p => p.status === 'ACTIVE')
+                        : projectSubTab === 'vinhomes'
+                        ? userCtx.standardProjects.some(p => p.status === 'ACTIVE')
+                        : projectSubTab === 'vinfast'
+                        ? vinfastProjects.some(p => p.status === 'ACTIVE')
+                        : projectSubTab === 'stocks'
+                        ? stockProjects.some(p => p.status === 'ACTIVE')
+                        : casinoProjects.some(p => p.status === 'ACTIVE')
                       ) && (
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       )}
                       <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
                         (projectSubTab === 'vinpearl'
                           ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
-                          : userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                          : projectSubTab === 'vinhomes'
+                          ? userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                          : projectSubTab === 'vinfast'
+                          ? vinfastProjects.every(p => p.status === 'ACTIVE')
+                          : projectSubTab === 'stocks'
+                          ? stockProjects.every(p => p.status === 'ACTIVE')
+                          : casinoProjects.every(p => p.status === 'ACTIVE')
                         )
                           ? 'bg-emerald-500' 
                           : (projectSubTab === 'vinpearl'
                               ? userCtx.adminProjects.some(p => p.status === 'ACTIVE')
-                              : userCtx.standardProjects.some(p => p.status === 'ACTIVE')
+                              : projectSubTab === 'vinhomes'
+                              ? userCtx.standardProjects.some(p => p.status === 'ACTIVE')
+                              : projectSubTab === 'vinfast'
+                              ? vinfastProjects.some(p => p.status === 'ACTIVE')
+                              : projectSubTab === 'stocks'
+                              ? stockProjects.some(p => p.status === 'ACTIVE')
+                              : casinoProjects.some(p => p.status === 'ACTIVE')
                             )
                             ? 'bg-amber-500' 
                             : 'bg-zinc-600'
@@ -1316,10 +1375,11 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-white tracking-wider">ĐIỀU HÀNH TỔNG THỂ</span>
                       <span className="text-[10px] text-zinc-400 font-body">
-                        {projectSubTab === 'vinpearl'
-                          ? `${userCtx.adminProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.adminProjects.length} dự án mở`
-                          : `${userCtx.standardProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.standardProjects.length} dự án mở`
-                        }
+                        {projectSubTab === 'vinpearl' && `${userCtx.adminProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.adminProjects.length} mở`}
+                        {projectSubTab === 'vinhomes' && `${userCtx.standardProjects.filter(p => p.status === 'ACTIVE').length}/${userCtx.standardProjects.length} mở`}
+                        {projectSubTab === 'vinfast' && `${vinfastProjects.filter(p => p.status === 'ACTIVE').length}/${vinfastProjects.length} mở`}
+                        {projectSubTab === 'stocks' && `${stockProjects.filter(p => p.status === 'ACTIVE').length}/${stockProjects.length} mở`}
+                        {projectSubTab === 'casino' && `${casinoProjects.filter(p => p.status === 'ACTIVE').length}/${casinoProjects.length} mở`}
                       </span>
                     </div>
                   </div>
@@ -1330,18 +1390,31 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                     onClick={() => {
                       if (projectSubTab === 'vinpearl') {
                         const allActive = userCtx.adminProjects.every(p => p.status === 'ACTIVE');
-                        const targetStatus = allActive ? 'CLOSED' : 'ACTIVE';
-                        userCtx.updateAllProjectsStatus(targetStatus);
-                      } else {
+                        userCtx.updateAllProjectsStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      } else if (projectSubTab === 'vinhomes') {
                         const allActive = userCtx.standardProjects.every(p => p.status === 'ACTIVE');
-                        const targetStatus = allActive ? 'CLOSED' : 'ACTIVE';
-                        userCtx.updateAllStandardProjectsStatus(targetStatus);
+                        userCtx.updateAllStandardProjectsStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      } else if (projectSubTab === 'vinfast') {
+                        const allActive = vinfastProjects.every(p => p.status === 'ACTIVE');
+                        userCtx.updateAllVinfastStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      } else if (projectSubTab === 'stocks') {
+                        const allActive = stockProjects.every(p => p.status === 'ACTIVE');
+                        userCtx.updateAllStocksStatus(allActive ? 'CLOSED' : 'ACTIVE');
+                      } else if (projectSubTab === 'casino') {
+                        const allActive = casinoProjects.every(p => p.status === 'ACTIVE');
+                        userCtx.updateAllCasinoGamesStatus(allActive ? 'CLOSED' : 'ACTIVE');
                       }
                     }}
                     className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                       (projectSubTab === 'vinpearl'
                         ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
-                        : userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                        : projectSubTab === 'vinhomes'
+                        ? userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                        : projectSubTab === 'vinfast'
+                        ? vinfastProjects.every(p => p.status === 'ACTIVE')
+                        : projectSubTab === 'stocks'
+                        ? stockProjects.every(p => p.status === 'ACTIVE')
+                        : casinoProjects.every(p => p.status === 'ACTIVE')
                       ) ? 'bg-emerald-500' : 'bg-zinc-700'
                     }`}
                   >
@@ -1349,7 +1422,13 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                       className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                         (projectSubTab === 'vinpearl'
                           ? userCtx.adminProjects.every(p => p.status === 'ACTIVE')
-                          : userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                          : projectSubTab === 'vinhomes'
+                          ? userCtx.standardProjects.every(p => p.status === 'ACTIVE')
+                          : projectSubTab === 'vinfast'
+                          ? vinfastProjects.every(p => p.status === 'ACTIVE')
+                          : projectSubTab === 'stocks'
+                          ? stockProjects.every(p => p.status === 'ACTIVE')
+                          : casinoProjects.every(p => p.status === 'ACTIVE')
                         ) ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
@@ -1357,35 +1436,31 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
 
-              {/* Sub-tab Switcher */}
-              <div className="flex gap-2 bg-[#001730]/40 p-1.5 rounded-xl border border-zinc-800/40 w-fit backdrop-blur-md">
-                <button
-                  type="button"
-                  onClick={() => setProjectSubTab('vinpearl')}
-                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                    projectSubTab === 'vinpearl' 
-                      ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_4px_12px_rgba(212,175,55,0.25)] font-black' 
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/20'
-                  }`}
-                >
-                  Mục Vinpearl (Siêu Dự Án)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProjectSubTab('vinhomes')}
-                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                    projectSubTab === 'vinhomes' 
-                      ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_4px_12px_rgba(212,175,55,0.25)] font-black' 
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/20'
-                  }`}
-                >
-                  Mục Vinhomes (Dự Án Đầu Tư)
-                </button>
+              {/* Sub-tab Switcher (5 Areas) */}
+              <div className="flex flex-wrap gap-2 bg-[#001730]/40 p-1.5 rounded-xl border border-zinc-800/40 w-fit backdrop-blur-md">
+                {(['vinpearl', 'vinhomes', 'vinfast', 'stocks', 'casino'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setProjectSubTab(tab)}
+                    className={`px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                      projectSubTab === tab 
+                        ? 'bg-[#D4AF37] text-[#000D1A] shadow-[0_4px_12px_rgba(212,175,55,0.25)] font-black' 
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/20'
+                    }`}
+                  >
+                    {tab === 'vinpearl' && 'Vinpearl (Siêu Dự Án)'}
+                    {tab === 'vinhomes' && 'Vinhomes (Quỹ Đầu Tư)'}
+                    {tab === 'vinfast' && 'VinFast (Ủy Thác Xe)'}
+                    {tab === 'stocks' && 'Chứng Khoán'}
+                    {tab === 'casino' && 'Casino Games'}
+                  </button>
+                ))}
               </div>
 
               {/* Danh sách Card dự án */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
-                {projectSubTab === 'vinpearl' ? (
+                {projectSubTab === 'vinpearl' && (
                   userCtx.adminProjects.map(p => (
                     <ProjectEditCard 
                       key={p.id} 
@@ -1393,12 +1468,89 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
                       onSave={userCtx.updateProjectDetails} 
                     />
                   ))
-                ) : (
+                )}
+                {projectSubTab === 'vinhomes' && (
                   userCtx.standardProjects.map(p => (
                     <ProjectEditCard 
                       key={p.id} 
                       project={p} 
                       onSave={userCtx.updateStandardProjectDetails} 
+                    />
+                  ))
+                )}
+                {projectSubTab === 'vinfast' && (
+                  vinfastProjects.map(p => (
+                    <ProjectEditCard 
+                      key={p.id} 
+                      project={p} 
+                      onSave={async (id, updates) => {
+                        const updatedCars = userCtx.cmsVinfast.map((car: any) => {
+                          if (car.title === id) {
+                            const newCar = { ...car };
+                            if (updates.title !== undefined) newCar.title = updates.title;
+                            if (updates.interestRateValue !== undefined) newCar.profit = (updates.interestRateValue * 100).toFixed(1);
+                            if (updates.minInvestAmount !== undefined) newCar.minCapital = updates.minInvestAmount.toLocaleString('vi-VN').replace(/,/g, '.');
+                            if (updates.progress !== undefined) newCar.progress = updates.progress;
+                            if (updates.status !== undefined) newCar.status = updates.status;
+                            return newCar;
+                          }
+                          return car;
+                        });
+                        await userCtx.updateCmsVinfast(updatedCars);
+                      }} 
+                    />
+                  ))
+                )}
+                {projectSubTab === 'stocks' && (
+                  stockProjects.map(p => (
+                    <ProjectEditCard 
+                      key={p.id} 
+                      project={p} 
+                      onSave={async (id, updates) => {
+                        const changes: any = {};
+                        if (updates.minInvestAmount !== undefined) {
+                          changes.price = updates.minInvestAmount;
+                        }
+                        if (updates.interestRateValue !== undefined) {
+                          changes.changePercent = Number((updates.interestRateValue * 100).toFixed(2));
+                          const currentStock = userCtx.standardStocks.find(s => s.symbol === id);
+                          if (currentStock) {
+                            changes.change = Math.round(changes.price * (changes.changePercent / 100));
+                          }
+                        }
+                        if (updates.status !== undefined) {
+                          changes.status = updates.status;
+                        }
+                        if (updates.scale !== undefined) {
+                          changes.volume = updates.scale;
+                        }
+                        if (updates.title !== undefined) {
+                          const nameMatch = updates.title.match(/^(.*?)\s*\(/);
+                          changes.name = nameMatch ? nameMatch[1].trim() : updates.title;
+                        }
+                        await userCtx.updateStockDetails(id, changes);
+                      }} 
+                    />
+                  ))
+                )}
+                {projectSubTab === 'casino' && (
+                  casinoProjects.map(p => (
+                    <ProjectEditCard 
+                      key={p.id} 
+                      project={p} 
+                      onSave={async (id, updates) => {
+                        const changes: any = {};
+                        if (updates.status !== undefined) {
+                          changes.status = updates.status;
+                        }
+                        if (updates.title !== undefined) {
+                          changes.title = updates.title;
+                        }
+                        if (updates.imageUrl !== undefined) {
+                          changes.imageUrl = updates.imageUrl;
+                        }
+                        await userCtx.updateCasinoGameDetails(id, changes);
+                      }} 
                     />
                   ))
                 )}

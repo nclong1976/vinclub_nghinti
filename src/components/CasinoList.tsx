@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { CasinoGame } from '../types';
 import CasinoGameCard from './CasinoGameCard';
 import CasinoHeader from './CasinoHeader';
@@ -10,30 +10,34 @@ export default function CasinoList({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const q = query(collection(db, "casinoGames"));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-          import('../data').then(({ casinoGames: localGames }) => {
-            setGames(localGames);
-            setLoading(false);
-          });
-          return;
-        }
-        const gamesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CasinoGame));
-        gamesData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-        setGames(gamesData);
-      } catch (error) {
-        console.error("Error fetching casino games:", error);
+    const q = query(collection(db, "casinoGames"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
         import('../data').then(({ casinoGames: localGames }) => {
-          setGames(localGames);
+          setGames(localGames.map(g => ({ ...g, status: g.status || 'ACTIVE' })));
+          setLoading(false);
         });
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
-    fetchGames();
+      const gamesData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          status: data.status || 'ACTIVE',
+          ...data 
+        } as CasinoGame;
+      });
+      gamesData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+      setGames(gamesData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error listening to casino games:", error);
+      import('../data').then(({ casinoGames: localGames }) => {
+        setGames(localGames);
+        setLoading(false);
+      });
+    });
+    return () => unsubscribe();
   }, []);
 
   return (

@@ -15,6 +15,10 @@ export default function StockTradeTab({ stock }: { stock: Stock }) {
   const estimatedCost = quantity * stock.price;
 
   const handleOrder = async (type: 'buy' | 'sell') => {
+    if (stock.status === 'CLOSED') {
+      alert("Cổ phiếu này đã bị tạm ngừng giao dịch.");
+      return;
+    }
     if (quantity <= 0) {
         alert("Vui lòng nhập số lượng hợp lệ.");
         return;
@@ -101,18 +105,26 @@ export default function StockTradeTab({ stock }: { stock: Stock }) {
       
       {/* Trading Actions */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#121212] border-t border-white/5 flex gap-4">
-        <button 
-            onClick={() => handleOrder('buy')}
-            className="flex-1 py-4 bg-[#10b981] hover:bg-[#059669] text-white font-bold rounded-xl transition-colors"
-        >
-            Mua
-        </button>
-        <button 
-            onClick={() => handleOrder('sell')}
-            className="flex-1 py-4 bg-[#f43f5e] hover:bg-[#e11d48] text-white font-bold rounded-xl transition-colors"
-        >
-            Bán
-        </button>
+        {stock.status === 'CLOSED' ? (
+          <div className="w-full py-4 bg-zinc-800 text-zinc-500 font-bold rounded-xl flex items-center justify-center border border-zinc-700/50 uppercase tracking-wider select-none">
+            TẠM NGỪNG GIAO DỊCH
+          </div>
+        ) : (
+          <>
+            <button 
+                onClick={() => handleOrder('buy')}
+                className="flex-1 py-4 bg-[#10b981] hover:bg-[#059669] text-white font-bold rounded-xl transition-colors cursor-pointer"
+            >
+                Mua
+            </button>
+            <button 
+                onClick={() => handleOrder('sell')}
+                className="flex-1 py-4 bg-[#f43f5e] hover:bg-[#e11d48] text-white font-bold rounded-xl transition-colors cursor-pointer"
+            >
+                Bán
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
