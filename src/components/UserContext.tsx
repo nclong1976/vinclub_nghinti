@@ -114,6 +114,8 @@ type UserContextType = {
   adminProjects: Project[];
   auditLog: AuditLogEntry[];
   updateProjectStatus: (projectId: string, newStatus: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED') => Promise<void>;
+  updateProjectDetails: (projectId: string, updates: Partial<Project>) => Promise<void>;
+  updateAllProjectsStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
   portfolio: PortfolioItem[];
   orderHistory: Order[];
   placeOrder: (symbol: string, quantity: number, price: number, type: 'buy' | 'sell') => Promise<{ success: boolean, message?: string }>;
@@ -177,6 +179,8 @@ export const UserContext = createContext<UserContextType>({
   adminProjects: [],
   auditLog: [],
   updateProjectStatus: async () => {},
+  updateProjectDetails: async () => {},
+  updateAllProjectsStatus: async () => {},
   portfolio: [],
   orderHistory: [],
   placeOrder: async () => ({ success: false, message: 'Not implemented' }),
@@ -931,6 +935,82 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }, { merge: true });
     } catch (e) {
         console.error("Error updating project status:", e);
+    }
+  };
+
+  const updateProjectDetails = async (projectId: string, updates: Partial<Project>) => {
+    const updatedProjects = adminProjects.map(p => {
+      if (p.id === projectId) {
+        const merged = { ...p, ...updates };
+        
+        // Auto convert fields if value changed
+        if (updates.interestRateValue !== undefined) {
+          merged.interestRate = `${(updates.interestRateValue * 100).toFixed(1)}%`;
+        }
+        if (updates.minInvestAmount !== undefined) {
+          const num = updates.minInvestAmount;
+          if (num >= 1000000000) {
+            merged.minAmount = `${(num / 1000000000).toFixed(1)} Tỷ`;
+          } else {
+            merged.minAmount = `${(num / 1000000).toFixed(0)} Triệu`;
+          }
+        }
+        if (updates.durationDays !== undefined) {
+          merged.duration = `${updates.durationDays} ngày`;
+        }
+        return merged;
+      }
+      return p;
+    });
+
+    const projectTitle = adminProjects.find(p => p.id === projectId)?.title || '';
+    const changeLogs: string[] = [];
+    if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
+    if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(1)}%`);
+    if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
+    if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
+
+    const newLog: AuditLogEntry = {
+      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+      time: new Date().toLocaleString('vi-VN'),
+      adminName: displayName,
+      action: `Sửa dự án "${projectTitle}": ${changeLogs.join(', ')}`
+    };
+    const updatedLog = [newLog, ...auditLog];
+
+    setAdminProjectsState(updatedProjects);
+    setAuditLogState(updatedLog);
+
+    try {
+      await setDoc(doc(db, 'system', 'project_control'), {
+        projects: updatedProjects,
+        auditLog: updatedLog
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error updating project details:", e);
+    }
+  };
+
+  const updateAllProjectsStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
+    const updatedProjects = adminProjects.map(p => ({ ...p, status: newStatus }));
+    const newLog: AuditLogEntry = {
+      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+      time: new Date().toLocaleString('vi-VN'),
+      adminName: displayName,
+      action: `${newStatus === 'ACTIVE' ? 'Mở cửa' : 'Đóng cửa'} TẤT CẢ các dự án đầu tư`
+    };
+    const updatedLog = [newLog, ...auditLog];
+
+    setAdminProjectsState(updatedProjects);
+    setAuditLogState(updatedLog);
+
+    try {
+      await setDoc(doc(db, 'system', 'project_control'), {
+        projects: updatedProjects,
+        auditLog: updatedLog
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error updating all projects status:", e);
     }
   };
 
@@ -1813,6 +1893,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       adminProjects,
       auditLog,
       updateProjectStatus,
+      updateProjectDetails,
+      updateAllProjectsStatus,
       portfolio,
       orderHistory,
       placeOrder,

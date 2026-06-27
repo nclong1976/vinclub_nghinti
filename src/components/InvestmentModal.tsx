@@ -49,18 +49,17 @@ export default function InvestmentModal({ project, onClose }: { project: Project
 
   // Move from step 2 (Payment verification) to step 3 (Contract signing)
   const handleProceedToContract = () => {
-    // If user's balance is insufficient, simulate instant transfer confirmation
     if (balance < amount) {
-      // Simulate top-up of the difference so the user can successfully complete the investment
-      const topUpAmount = amount - balance;
-      setBalance(amount); // set balance to exactly the amount needed for smooth simulation
-      
-      // Add a virtual deposit transaction first so the user's ledger remains correct
+      // Create a pending deposit
       addTransaction({
         type: 'deposit',
-        amount: topUpAmount,
-        status: 'Thành công'
+        amount: amount,
+        status: 'Đang xử lý',
+        note: `Chuyển khoản đầu tư dự án ${project.title}`
       });
+      setErrorMsg('Hệ thống đã ghi nhận yêu cầu. Vui lòng chờ admin xác nhận nạp tiền trước khi tiếp tục ký hợp đồng.');
+      setStep(1); // Go back to step 1 to show error, or stay.
+      return;
     }
     setStep(3);
   };

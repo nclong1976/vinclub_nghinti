@@ -2,9 +2,11 @@ import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { 
   ChevronLeft, Users, DollarSign, TrendingUp, CheckCircle, XCircle, ShieldAlert,
   Search, Lock, Unlock, ArrowUpRight, CreditCard, Filter, FileText, Bell, MessageSquare,
-  Image as ImageIcon, Settings, History, ExternalLink, KeyRound
+  Image as ImageIcon, Settings, History, ExternalLink, KeyRound,
+  Save, Percent, Coins, Power, Edit
 } from 'lucide-react';
 import { UserContext } from './UserContext';
+import { Project } from '../types';
 import { db, auth } from '../firebase';
 import { collection, query, onSnapshot, updateDoc, doc, getDoc, where, orderBy, addDoc, serverTimestamp, setDoc, runTransaction } from 'firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -15,6 +17,247 @@ const chartData = [
   { name: 'Vinhomes', value: 20, color: '#10b981' },
   { name: 'Casino', value: 10, color: '#f43f5e' },
 ];
+
+interface ProjectEditCardProps {
+  project: Project;
+  onSave: (id: string, updates: Partial<Project>) => Promise<void>;
+}
+
+function ProjectEditCard({ project, onSave }: ProjectEditCardProps) {
+  const [title, setTitle] = useState(project.title);
+  const [category, setCategory] = useState(project.category);
+  const [interestRateValue, setInterestRateValue] = useState(project.interestRateValue);
+  const [minInvestAmount, setMinInvestAmount] = useState(project.minInvestAmount);
+  const [scale, setScale] = useState(project.scale || '');
+  const [durationDays, setDurationDays] = useState(project.durationDays || 5);
+  const [progress, setProgress] = useState(project.progress || 0);
+  const [imageUrl, setImageUrl] = useState(project.imageUrl || '');
+  const [status, setStatus] = useState(project.status || 'ACTIVE');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setTitle(project.title);
+    setCategory(project.category);
+    setInterestRateValue(project.interestRateValue);
+    setMinInvestAmount(project.minInvestAmount);
+    setScale(project.scale || '');
+    setDurationDays(project.durationDays || 5);
+    setProgress(project.progress || 0);
+    setImageUrl(project.imageUrl || '');
+    setStatus(project.status || 'ACTIVE');
+  }, [project]);
+
+  const handleToggleStatus = async () => {
+    const nextStatus = status === 'ACTIVE' ? 'CLOSED' : 'ACTIVE';
+    setStatus(nextStatus);
+    setIsSaving(true);
+    try {
+      await onSave(project.id, { status: nextStatus });
+    } catch (e) {
+      console.error(e);
+      setStatus(status);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(project.id, {
+        title,
+        category,
+        interestRateValue: Number(interestRateValue),
+        minInvestAmount: Number(minInvestAmount),
+        scale,
+        durationDays: Number(durationDays),
+        progress: Number(progress),
+        imageUrl,
+      });
+      alert(`Đã cập nhật dự án "${title}" thành công!`);
+    } catch (e) {
+      console.error(e);
+      alert('Lỗi cập nhật dự án!');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formatCurrency = (val: number) => {
+    if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)} Tỷ VNĐ`;
+    if (val >= 1000000) return `${(val / 1000000).toFixed(0)} Triệu VNĐ`;
+    return `${val.toLocaleString('vi-VN')} VNĐ`;
+  };
+
+  return (
+    <div className="bg-[#001730]/90 backdrop-blur-md border border-[#D4AF37]/30 rounded-2xl p-6 flex flex-col md:flex-row gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all hover:border-[#D4AF37]/60 duration-300">
+      {/* Cột Trái: Ảnh & Toggle Bật/Tắt */}
+      <div className="flex flex-col items-center justify-center md:w-1/3 border-b md:border-b-0 md:border-r border-zinc-800 pb-6 md:pb-0 md:pr-6 gap-4">
+        <div className="relative w-full h-40 rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800">
+          {imageUrl ? (
+            <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+              Không có ảnh
+            </div>
+          )}
+          
+          <div className="absolute top-2 right-2">
+            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+              status === 'ACTIVE' 
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700'
+            }`}>
+              {status === 'ACTIVE' ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between w-full bg-black/30 border border-zinc-800/50 p-3.5 rounded-xl">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              {status === 'ACTIVE' && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              )}
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-zinc-600'}`}></span>
+            </span>
+            <span className="text-xs font-bold text-zinc-300 tracking-wider">
+              {status === 'ACTIVE' ? 'MỞ ĐẦU TƯ' : 'ĐÓNG ĐẦU TƯ'}
+            </span>
+          </div>
+          
+          <button 
+            type="button"
+            onClick={handleToggleStatus}
+            disabled={isSaving}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-zinc-700'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                status === 'ACTIVE' ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Cột Phải: Các Input chỉnh sửa */}
+      <div className="flex-1 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="col-span-1 sm:col-span-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Tên Dự Án</label>
+            <input 
+              type="text" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Phân Khu / Danh Mục</label>
+            <select 
+              value={category} 
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+            >
+              <option value="Vinpearl" className="bg-[#000D1A]">Vinpearl</option>
+              <option value="Vinhomes" className="bg-[#000D1A]">Vinhomes</option>
+              <option value="VinFast" className="bg-[#000D1A]">VinFast</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Lãi Suất (%)</label>
+            <div className="relative">
+              <input 
+                type="number" 
+                step="0.1"
+                value={(interestRateValue * 100).toFixed(1)} 
+                onChange={(e) => setInterestRateValue(Number(e.target.value) / 100)}
+                className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+              />
+              <span className="absolute right-3 top-2.5 text-zinc-500 text-xs font-bold">%</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Đầu Tư Tối Thiểu (VNĐ)</label>
+            <input 
+              type="number" 
+              value={minInvestAmount} 
+              onChange={(e) => setMinInvestAmount(Number(e.target.value))}
+              className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+            />
+            <span className="text-[10px] text-zinc-400 mt-1 block">
+              Xem trước: {formatCurrency(minInvestAmount)}
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Quy Mô Tổng Thể</label>
+            <input 
+              type="text" 
+              value={scale} 
+              onChange={(e) => setScale(e.target.value)}
+              placeholder="Ví dụ: 35.000 Tỷ VNĐ"
+              className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Kỳ Hạn Đầu Tư (ngày)</label>
+            <input 
+              type="number" 
+              value={durationDays} 
+              onChange={(e) => setDurationDays(Number(e.target.value))}
+              className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Tiến Độ Huy Động (%)</label>
+            <div className="flex items-center gap-3">
+              <input 
+                type="range" 
+                min="0"
+                max="100"
+                value={progress} 
+                onChange={(e) => setProgress(Number(e.target.value))}
+                className="flex-1 accent-[#D4AF37]"
+              />
+              <span className="text-sm font-bold text-white w-10 text-right">{progress}%</span>
+            </div>
+          </div>
+
+          <div className="col-span-1 sm:col-span-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-1.5">Đường Dẫn Hình Ảnh (URL)</label>
+            <input 
+              type="text" 
+              value={imageUrl} 
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="bg-[#D4AF37] hover:bg-[#bfa032] disabled:bg-zinc-700 text-[#000D1A] font-black py-2 px-5 rounded-xl flex items-center gap-2 transition-all active:scale-[0.97] text-xs uppercase tracking-wider shadow-[0_4px_16px_rgba(212,175,55,0.2)]"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {isSaving ? 'Đang lưu...' : 'Lưu cấu hình'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminConsole({ onBack }: { onBack: () => void }) {
   const userCtx = useContext(UserContext);
@@ -1009,52 +1252,79 @@ export default function AdminConsole({ onBack }: { onBack: () => void }) {
 
           {activeTab === 'projects' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
-              <h2 className="text-2xl font-bold text-white border-b border-zinc-800 pb-4">Trung tâm điều hành dự án</h2>
-              
-              <div className="bg-[#001F3F] border border-[#D4AF37]/30 rounded-2xl overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-[#000D1A] text-[#D4AF37] text-xs uppercase font-black tracking-wider">
-                    <tr>
-                      <th className="px-6 py-4">Dự án</th>
-                      <th className="px-6 py-4">Phân khu</th>
-                      <th className="px-6 py-4">Tiến độ</th>
-                      <th className="px-6 py-4">Trạng thái</th>
-                      <th className="px-6 py-4">Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {userCtx.adminProjects.map(p => (
-                      <tr key={p.id} className="hover:bg-white/5">
-                        <td className="px-6 py-4 font-bold">{p.title}</td>
-                        <td className="px-6 py-4 text-zinc-400">{p.category}</td>
-                        <td className="px-6 py-4">
-                          <div className="w-full bg-zinc-700 h-2 rounded-full overflow-hidden">
-                            <div className="bg-emerald-500 h-full" style={{ width: `${p.progress}%` }}></div>
-                          </div>
-                          <span className="text-xs text-zinc-300">{p.progress}%</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : p.status === 'MAINTENANCE' ? 'bg-zinc-500/20 text-zinc-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 flex gap-2">
-                          <button onClick={() => handleUpdateProjectStatus(p.id, 'ACTIVE', p.title)} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs font-bold">Mở</button>
-                          <button onClick={() => handleUpdateProjectStatus(p.id, 'MAINTENANCE', p.title)} className="px-2 py-1 bg-zinc-500/20 text-zinc-400 rounded text-xs font-bold">Bảo trì</button>
-                          <button onClick={() => handleUpdateProjectStatus(p.id, 'CLOSED', p.title)} className="px-2 py-1 bg-rose-500/20 text-rose-400 rounded text-xs font-bold">Đóng</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Tiêu đề & Bật/Tắt tổng thể */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-6 gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Trung tâm điều hành dự án</h2>
+                  <p className="text-xs text-zinc-400 mt-1 font-body">Quản lý trạng thái, lãi suất, số tiền đầu tư tối thiểu và thông tin các siêu dự án.</p>
+                </div>
+                
+                {/* Panel bật tắt tổng thể */}
+                <div className="bg-[#001730] border border-[#D4AF37]/30 rounded-2xl p-4 flex items-center justify-between gap-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] min-w-[280px]">
+                  <div className="flex items-center gap-2.5">
+                    {/* Đèn LED tổng thể */}
+                    <span className="relative flex h-3.5 w-3.5">
+                      {userCtx.adminProjects.some(p => p.status === 'ACTIVE') && (
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      )}
+                      <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
+                        userCtx.adminProjects.every(p => p.status === 'ACTIVE') 
+                          ? 'bg-emerald-500' 
+                          : userCtx.adminProjects.some(p => p.status === 'ACTIVE')
+                          ? 'bg-amber-500' 
+                          : 'bg-zinc-600'
+                      }`}></span>
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-white tracking-wider">ĐIỀU HÀNH TỔNG THỂ</span>
+                      <span className="text-[10px] text-zinc-400 font-body">
+                        {userCtx.adminProjects.filter(p => p.status === 'ACTIVE').length}/{userCtx.adminProjects.length} dự án đang mở
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Toggle tổng thể */}
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const allActive = userCtx.adminProjects.every(p => p.status === 'ACTIVE');
+                      const targetStatus = allActive ? 'CLOSED' : 'ACTIVE';
+                      userCtx.updateAllProjectsStatus(targetStatus);
+                    }}
+                    className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      userCtx.adminProjects.every(p => p.status === 'ACTIVE') ? 'bg-emerald-500' : 'bg-zinc-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        userCtx.adminProjects.every(p => p.status === 'ACTIVE') ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
+              {/* Danh sách Card dự án */}
+              <div className="grid grid-cols-1 gap-6">
+                {userCtx.adminProjects.map(p => (
+                  <ProjectEditCard 
+                    key={p.id} 
+                    project={p} 
+                    onSave={userCtx.updateProjectDetails} 
+                  />
+                ))}
+              </div>
+
+              {/* Nhật ký vận hành */}
               <div className="bg-[#001F3F] border border-zinc-800 rounded-2xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Nhật ký vận hành</h3>
-                <div className="space-y-2 text-xs font-mono text-zinc-400 max-h-60 overflow-y-auto">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <History className="w-5 h-5 text-[#D4AF37]" /> Nhật ký vận hành
+                </h3>
+                <div className="space-y-2 text-xs font-mono text-zinc-400 max-h-60 overflow-y-auto scrollbar-hide">
                   {userCtx.auditLog.map(log => (
-                      <div key={log.id} className="border-b border-zinc-800 py-1">
-                          [{log.time}] {log.adminName}: {log.action}
+                      <div key={log.id} className="border-b border-zinc-800/40 py-2 flex justify-between items-start gap-4">
+                          <span className="text-[#D4AF37] shrink-0 font-bold">{log.time}</span>
+                          <span className="flex-1 text-zinc-300">{log.adminName}: {log.action}</span>
                       </div>
                   ))}
                 </div>

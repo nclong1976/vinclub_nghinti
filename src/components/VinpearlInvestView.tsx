@@ -19,16 +19,22 @@ export default function VinpearlInvestView({ projectId, onBack }: VinpearlInvest
   // Look up the selected project, or default to the first project in adminProjects
   const project = adminProjects.find(p => p.id === projectId) || adminProjects[0];
 
+  const [investmentAmount, setInvestmentAmount] = useState<number>(project?.minInvestAmount || 1200000000);
+
   const formatCurrency = (val: number) => {
     return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ";
   };
 
-  const investmentAmount = project?.minInvestAmount || 1200000000;
   const canInvest = balance >= investmentAmount;
 
   const handleProceedToSign = () => {
     if (project?.status === 'CLOSED') {
       setShowToast({ message: 'Dự án đã đóng cổng tiếp nhận vốn.', type: 'error' });
+      setTimeout(() => setShowToast(null), 3000);
+      return;
+    }
+    if (investmentAmount < (project?.minInvestAmount || 1200000000)) {
+      setShowToast({ message: 'Số tiền đầu tư nhỏ hơn mức tối thiểu.', type: 'error' });
       setTimeout(() => setShowToast(null), 3000);
       return;
     }
@@ -178,13 +184,47 @@ export default function VinpearlInvestView({ projectId, onBack }: VinpearlInvest
             {/* Amount Input area */}
             <div className="mb-6">
               <label className="text-[12px] font-bold text-[#334155] uppercase tracking-wider mb-2 block">SỐ TIỀN ĐẦU TƯ</label>
-              <div className="flex items-end justify-between border-b border-[#E2E8F0] pb-2 mb-2">
-                <span className="font-['Montserrat'] text-[28px] md:text-[32px] font-bold text-[#001839]">
-                  {investmentAmount.toLocaleString('vi-VN')}
-                </span>
-                <span className="font-['Montserrat'] text-[16px] md:text-[18px] font-bold text-[#334155] mb-1">VNĐ</span>
+              
+              <div className="relative mb-3">
+                <input 
+                  type="text" 
+                  value={new Intl.NumberFormat('vi-VN').format(investmentAmount)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setInvestmentAmount(Number(val));
+                  }}
+                  className="w-full bg-white border border-[#E2E8F0] rounded-xl py-3.5 pl-4 pr-16 text-[#001839] font-['Montserrat'] font-bold text-[24px] md:text-[28px] outline-none focus:border-[#001839] transition-colors"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#334155] font-['Montserrat'] font-bold text-[16px]">
+                  VNĐ
+                </div>
               </div>
-              <p className="text-[#747780] text-[13px]">Tối thiểu: {investmentAmount.toLocaleString('vi-VN')} VNĐ ({project.minAmount})</p>
+              <p className="text-[#747780] text-[13px]">Tối thiểu: {(project?.minInvestAmount || 1200000000).toLocaleString('vi-VN')} VNĐ ({project?.minAmount})</p>
+              
+              {/* Quick Multiplier Buttons */}
+              <div className="flex gap-2 mt-3">
+                <button 
+                  type="button" 
+                  onClick={() => setInvestmentAmount((project?.minInvestAmount || 1200000000) * 1)} 
+                  className="flex-1 py-2 border border-[#E2E8F0] rounded-xl text-[#334155] text-[11px] font-bold hover:border-[#001839] hover:text-[#001839] transition-colors bg-white cursor-pointer"
+                >
+                  Tối thiểu
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setInvestmentAmount((project?.minInvestAmount || 1200000000) * 2)} 
+                  className="flex-1 py-2 border border-[#E2E8F0] rounded-xl text-[#334155] text-[11px] font-bold hover:border-[#001839] hover:text-[#001839] transition-colors bg-white cursor-pointer"
+                >
+                  Gấp đôi (2x)
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setInvestmentAmount((project?.minInvestAmount || 1200000000) * 5)} 
+                  className="flex-1 py-2 border border-[#E2E8F0] rounded-xl text-[#334155] text-[11px] font-bold hover:border-[#001839] hover:text-[#001839] transition-colors bg-white cursor-pointer"
+                >
+                  Gấp 5 (5x)
+                </button>
+              </div>
             </div>
 
             {/* Funding Source */}
