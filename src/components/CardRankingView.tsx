@@ -96,7 +96,24 @@ export default function CardRankingView({ onBack }: CardRankingViewProps) {
     return `VC •••• •••• ${last4}`;
   };
 
-  const progressPercent = Math.min(100, Math.max(0, (pointsData.current_points / pointsData.next_tier_points) * 100));
+  let nextTierName = 'GOLD';
+  let nextTierLimit = 1000000000; // 1 Billion
+
+  if (totalDeposit >= 10000000000) {
+    nextTierName = 'MAX';
+    nextTierLimit = 10000000000;
+  } else if (totalDeposit >= 5000000000) {
+    nextTierName = 'VVIP';
+    nextTierLimit = 10000000000;
+  } else if (totalDeposit >= 1000000000) {
+    nextTierName = 'VIP';
+    nextTierLimit = 5000000000;
+  } else {
+    nextTierName = 'GOLD';
+    nextTierLimit = 1000000000;
+  }
+
+  const progressPercent = Math.min(100, Math.max(0, (totalDeposit / nextTierLimit) * 100));
 
   return (
     <div className="bg-[#f7f9fb] h-full overflow-y-auto pb-36 font-['Plus_Jakarta_Sans'] text-[#191c1e] select-none">
@@ -190,8 +207,8 @@ export default function CardRankingView({ onBack }: CardRankingViewProps) {
               <Trophy className="w-4 h-4 text-[#c29b57]" />
               <span className="text-sm font-bold text-[#001839]">Cột mốc tích lũy</span>
             </div>
-            <span className="text-xs font-black text-zinc-500 bg-zinc-100 px-2.5 py-1 rounded-full">
-              {pointsData.current_points} PTS
+            <span className="text-xs font-black text-zinc-550 bg-zinc-100 px-2.5 py-1 rounded-full">
+              {totalDeposit.toLocaleString('vi-VN')} / {nextTierLimit.toLocaleString('vi-VN')} VNĐ
             </span>
           </div>
 
@@ -213,11 +230,11 @@ export default function CardRankingView({ onBack }: CardRankingViewProps) {
                 ></div>
               </div>
               <div className="flex justify-between text-[11px] font-semibold text-zinc-500">
-                <span>Tiến trình: {progressPercent.toFixed(0)}%</span>
-                <span>Hạng kế tiếp: **{pointsData.next_tier_name}** ({pointsData.next_tier_points} PTS)</span>
+                <span>Tiến trình: {progressPercent.toFixed(1)}%</span>
+                <span>Hạng kế tiếp: **{nextTierName}**</span>
               </div>
               <p className="text-[11.5px] font-medium text-[#334155] border-t border-slate-50 pt-2.5 mt-1.5 leading-relaxed">
-                👉 Cần thêm <strong className="text-[#b48b3b]">{pointsData.next_tier_points - pointsData.current_points} điểm</strong> tích lũy để tự động nâng hạng thẻ lên <strong className="text-[#b48b3b]">{pointsData.next_tier_name}</strong>.
+                👉 Cần nạp thêm <strong className="text-[#b48b3b]">{(nextTierLimit - totalDeposit).toLocaleString('vi-VN')} VNĐ</strong> để tự động nâng hạng thẻ lên <strong className="text-[#b48b3b]">{nextTierName}</strong>.
               </p>
             </div>
           )}

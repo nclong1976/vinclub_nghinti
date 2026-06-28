@@ -17,7 +17,7 @@ interface HomeViewProps {
 export default function HomeView({
   onNavigate
 }: HomeViewProps) {
-  const { displayName, balance, cmsNews, articlesList, userId, transactions } = useUser();
+  const { displayName, balance, cmsNews, articlesList, userId, transactions, avatarImage } = useUser();
 
   const totalDeposit = (transactions || [])
     .filter((t: any) => t.type === 'deposit' && t.status === 'Thành công')
@@ -124,7 +124,25 @@ export default function HomeView({
     return () => unsub();
   }, [userId]);
 
-  const progressPercent = Math.min(100, Math.max(0, (pointsData.current_points / pointsData.next_tier_points) * 100));
+  // Personal deposit-based milestones
+  let nextTierName = 'GOLD';
+  let nextTierLimit = 1000000000; // 1 Billion
+
+  if (totalDeposit >= 10000000000) {
+    nextTierName = 'MAX';
+    nextTierLimit = 10000000000;
+  } else if (totalDeposit >= 5000000000) {
+    nextTierName = 'VVIP';
+    nextTierLimit = 10000000000;
+  } else if (totalDeposit >= 1000000000) {
+    nextTierName = 'VIP';
+    nextTierLimit = 5000000000;
+  } else {
+    nextTierName = 'GOLD';
+    nextTierLimit = 1000000000;
+  }
+
+  const progressPercent = Math.min(100, Math.max(0, (totalDeposit / nextTierLimit) * 100));
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -308,8 +326,12 @@ export default function HomeView({
             onClick={() => onNavigate('profile')}
             className="flex items-center space-x-3 cursor-pointer group"
           >
-            <div className="w-12 h-12 rounded-full bg-[#f0e1c9] flex items-center justify-center text-[#8b6b4e] font-extrabold text-lg shadow-inner group-hover:scale-105 transition-transform">
-              {initials}
+            <div className="w-12 h-12 rounded-full bg-[#f0e1c9] flex items-center justify-center text-[#8b6b4e] font-extrabold text-lg shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+              {avatarImage ? (
+                <img src={avatarImage} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                initials
+              )}
             </div>
             <div className="bg-[#bc8f5f] px-3 py-1.5 rounded-md font-extrabold text-xs tracking-widest text-white shadow-sm">
               {tierName}
@@ -322,7 +344,7 @@ export default function HomeView({
             className="flex flex-col items-end flex-1 ml-4 max-w-[180px] cursor-pointer hover:opacity-80 transition-all select-none"
           >
             <div className="flex items-center text-[10px] font-extrabold mb-1.5 text-zinc-500 uppercase tracking-wider">
-              <span className="mr-0.5">Hạng tiếp theo: {pointsData.next_tier_name}</span>
+              <span className="mr-0.5">Hạng tiếp theo: {nextTierName}</span>
               <svg className="h-3 w-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
               </svg>
