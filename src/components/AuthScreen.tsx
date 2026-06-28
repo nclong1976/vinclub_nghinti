@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useUser } from './UserContext';
 import { Eye, EyeOff, CheckCircle, ChevronRight } from 'lucide-react';
+import vinpearlIcon from '../assets/images/logo-vinpearl-1.png';
 
 export default function AuthScreen() {
   const { login, register } = useUser();
@@ -31,11 +32,11 @@ export default function AuthScreen() {
   const VinLogos = () => (
     <div className="flex items-center justify-center mt-6 mb-8 select-none">
       {/* Left side: VINPEARL */}
-      <div className="flex flex-col items-center justify-center w-36">
+      <div className="flex flex-col items-center justify-center w-14 h-14">
         <img 
-          src="https://cdn.haitrieu.com/wp-content/uploads/2022/01/Logo-Vinpearl.png" 
+          src={vinpearlIcon} 
           alt="VINPEARL Logo" 
-          className="w-full h-auto object-contain"
+          className="w-full h-full object-contain"
           referrerPolicy="no-referrer"
         />
       </div>
@@ -146,7 +147,7 @@ export default function AuthScreen() {
   };
 
   return (
-    <div id="auth-screen-container" className="flex-1 flex flex-col bg-white min-h-screen relative overflow-y-auto font-['Inter',sans-serif]">
+    <div id="auth-screen-container" className="flex-1 flex flex-col bg-white h-full relative overflow-y-auto font-['Inter',sans-serif]">
       {/* Top Header: VIE selector */}
       <div className="absolute top-6 right-4 flex items-center z-10">
         <button className="flex items-center hover:opacity-80 transition-opacity">

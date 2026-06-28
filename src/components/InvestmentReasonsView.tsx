@@ -16,6 +16,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import reasonGreenVision from '../assets/images/welfare/reason-green-vision.jpg';
+import reasonVingroup from '../assets/images/welfare/reason-vingroup.jpg';
 
 export default function InvestmentReasonsView({ onBack }: { onBack: () => void }) {
   return (
@@ -55,7 +57,7 @@ export default function InvestmentReasonsView({ onBack }: { onBack: () => void }
         >
           <div className="h-40 relative">
             <img 
-              src="https://vinfastauto.com/themes/porto/img/vfe34/banner.jpg" 
+              src={reasonGreenVision} 
               alt="Tầm nhìn xanh" 
               className="w-full h-full object-cover"
             />
@@ -91,7 +93,7 @@ export default function InvestmentReasonsView({ onBack }: { onBack: () => void }
         >
           <div className="h-40 relative">
             <img 
-              src="https://vinhomes.vn/sites/default/files/2021-09/1_7.jpg" 
+              src={reasonVingroup} 
               alt="Hệ sinh thái Vingroup" 
               className="w-full h-full object-cover"
             />

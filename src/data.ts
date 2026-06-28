@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { GridItem, NavItem, Project, Stock, ChartDataPoint, CasinoGame } from './types';
 import casinoIcon from './assets/images/regenerated_image_1782385981323.png';
-import vinfastIcon from './assets/images/regenerated_image_1782386390511.png';
+import vinfastIcon from './assets/images/logo-vinfast-1.png';
+import vinpearlIcon from './assets/images/logo-vinpearl-1.png';
 
 // DATA CONFIGURATION
 // To change an icon to an image, simply remove the `icon` property
@@ -25,7 +26,7 @@ export const gridItems: GridItem[] = [
   { id: '2', title: 'Ưu đãi phúc lợi', icon: Briefcase },
   { id: '3', title: 'Mục tiêu', icon: Trophy },
   { id: '4', title: 'Casino', imageUrl: casinoIcon },
-  { id: '5', title: 'Vinpearl', imageUrl: 'https://inviva.vn/wp-content/uploads/2026/04/logo-vinpearl-vector-01.png' },
+  { id: '5', title: 'Vinpearl', imageUrl: vinpearlIcon },
   { id: '6', title: 'Lý do nên đầu tư', icon: BarChart3 },
   { id: '7', title: 'Vòng quay may mắn', icon: Aperture },
   { id: '8', title: 'Vinfast', imageUrl: vinfastIcon },
@@ -97,17 +98,17 @@ export const projects: Project[] = [
   },
   {
     id: '5',
-    title: 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)',
-    imageUrl: 'https://i.ex-cdn.com/vietnamfinance.vn/files/news/2025/12/14/trong-dong-0132.jpg',
-    interestRate: '2.00 %',
-    duration: '12960 phút',
-    minAmount: '500.000.000 VNĐ',
-    scale: '36.200.000.000 VNĐ',
-    progress: 95,
-    category: 'THỂ THAO',
-    durationDays: 9,
-    minInvestAmount: 500000000,
-    interestRateValue: 0.02,
+    title: 'Quỹ Phát Triển Giáo Dục Liên Cấp',
+    imageUrl: 'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcRh9K9ANh6TGQNolVDZNsaJkjP7IHeP2xxkltwr5sdSpFZwjVTN',
+    interestRate: '1.10 %',
+    duration: '7200 phút',
+    minAmount: '5.000.000 VNĐ',
+    scale: '500.000.000 VNĐ',
+    progress: 96,
+    category: 'GIÁO DỤC',
+    durationDays: 5,
+    minInvestAmount: 5000000,
+    interestRateValue: 0.011,
   }
 ];
 

@@ -14,7 +14,7 @@ import AccountVerification from './AccountVerification';
 import GoogleDriveSync from './GoogleDriveSync';
 import KeepNotes from './KeepNotes';
 
-export default function Profile({ onBack, onHome, initialSubView, onNavigateToAdmin }: { onBack: () => void, onHome: () => void, initialSubView?: string | null, onNavigateToAdmin?: () => void }) {
+export default function Profile({ onBack, onHome, initialSubView, onNavigate }: { onBack: () => void, onHome: () => void, initialSubView?: string | null, onNavigate?: (view: string) => void }) {
   const { 
     displayName, 
     avatarImage, 
@@ -38,7 +38,10 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     cccd,
     address,
     userId,
-    isIdentityVerified
+    isIdentityVerified,
+    kycStatus,
+    kycRejectReason,
+    updateUserField
   } = useUser();
 
   const [activeSubView, setActiveSubView] = useState<string | null>(initialSubView || null);
@@ -56,6 +59,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
   const [bankName, setBankName] = useState(bankInfo?.bankName || '');
   const [bankAccount, setBankAccount] = useState(bankInfo?.bankAccount || '');
   const [cardHolder, setCardHolder] = useState(bankInfo?.cardHolder || '');
+  const [bankWithdrawalPass, setBankWithdrawalPass] = useState('');
 
   // Password states
   const [oldPassword, setOldPassword] = useState('');
@@ -100,18 +104,14 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     { id: 'keep_notes', icon: <FileText className="w-5 h-5 text-amber-500" />, label: 'Sổ tay Google Keep' },
   ];
 
-  if (isAdmin && onNavigateToAdmin) {
-    menuItems.push({ id: 'admin_console', icon: <ShieldCheck className="w-5 h-5 text-amber-500" />, label: 'Bảng Quản trị Admin' });
-  }
+
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('vi-VN').format(val) + ' VNĐ';
   };
 
   const handleMenuClick = (id: string) => {
-    if (id === 'admin_console') {
-      onNavigateToAdmin && onNavigateToAdmin();
-    } else if (id === 'profile_info') {
+    if (id === 'profile_info') {
       setIsEditProfileOpen(true);
     } else {
       setActiveSubView(id);
@@ -128,12 +128,16 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     }
     
     addDepositRecord(amt, depositNote, depositProof || '');
-    showToast(`Đã tạo yêu cầu gửi tiền ${formatCurrency(amt)} thành công! Trạng thái: Đang xử lý`, 'success');
+    showToast(`Đã tạo yêu cầu gửi tiền ${formatCurrency(amt)} thành công! Đang chuyển hướng đến CSKH...`, 'success');
     setDepositAmount('');
     setDepositNote('');
     setDepositProof(null);
 
-    setActiveSubView('deposits');
+    if (onNavigate) {
+      onNavigate('cskh');
+    } else {
+      setActiveSubView('deposits');
+    }
   };
 
   // Withdraw handler
@@ -175,7 +179,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
       status: 'Đang xử lý'
     });
 
-    showToast(`Đã gửi yêu cầu rút ${formatCurrency(amt)} thành công!`, 'success');
+    showToast('Hệ thống đang xét duyệt, xin chờ trong giây lát.', 'success');
     setWithdrawAmount('');
     setWithdrawPass('');
     setActiveSubView('transaction_history');
@@ -184,16 +188,21 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
   // Bank Link handler
   const handleBankLinkSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bankName || !bankAccount || !cardHolder) {
+    if (!bankName || !bankAccount || !cardHolder || !bankWithdrawalPass) {
       showToast('Vui lòng điền đầy đủ các thông tin', 'error');
       return;
     }
+
+    if (updateUserField) {
+      updateUserField('currentWithdrawalPassword', bankWithdrawalPass).catch(console.error);
+    }
+    
     setBankInfo({
       bankName,
       bankAccount,
       cardHolder: cardHolder.toUpperCase()
     });
-    showToast('Liên kết tài khoản ngân hàng thành công!', 'success');
+    showToast('Liên kết tài khoản ngân hàng và đăng ký mật khẩu rút tiền thành công!', 'success');
   };
 
   const handleUnlinkBank = () => {
@@ -201,6 +210,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     setBankName('');
     setBankAccount('');
     setCardHolder('');
+    setBankWithdrawalPass('');
     showToast('Đã hủy liên kết ngân hàng', 'success');
   };
 
@@ -260,6 +270,15 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
       return;
     }
 
+    const totalDepositAmt = transactions
+      .filter(t => t.type === 'deposit' && t.status === 'Thành công')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    if (totalDepositAmt < 2000000) {
+      showToast('Tài khoản phải nạp tiền từ 2.000.000 VNĐ trở lên mới được điểm danh hàng ngày!', 'error');
+      return;
+    }
+
     const rewardAmount = 50000; // 50,000 VND
     addBonus(rewardAmount, 'Thưởng điểm danh hàng ngày');
     localStorage.setItem('last-checkin-date', today);
@@ -295,41 +314,42 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     switch (activeSubView) {
       case 'deposit':
         content = (
-          <form onSubmit={handleDepositSubmit} className="p-4 flex flex-col gap-4">
-            <div className="bg-[#1a1a1a] p-5 rounded-xl border border-zinc-800">
-              <h3 className="text-zinc-300 font-medium text-sm mb-4">Chọn phương thức gửi tiền:</h3>
-              
-              <div className="grid grid-cols-3 gap-2.5 mb-6">
-                <button 
-                  type="button"
-                  onClick={() => setDepositMethod('bank_qr')}
-                  className={`py-3 px-2 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition-all ${depositMethod === 'bank_qr' ? 'border-[#c29b57] bg-[#c29b57]/10 text-[#ebd5ad]' : 'border-zinc-800 bg-black/40 text-zinc-400 hover:border-zinc-700'}`}
-                >
-                  <QrCode className="w-5 h-5 text-[#c29b57]" />
-                  <span className="text-[11px] font-medium">QR Ngân Hàng</span>
-                </button>
+          <form onSubmit={handleDepositSubmit} className="p-3 flex flex-col gap-3">
+            <div className="bg-[#1a1a1a] p-4 rounded-xl border border-zinc-800 flex flex-col gap-3">
+              <div>
+                <h3 className="text-zinc-300 font-medium text-xs mb-2">Chọn phương thức:</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setDepositMethod('bank_qr')}
+                    className={`py-2 px-1 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${depositMethod === 'bank_qr' ? 'border-[#c29b57] bg-[#c29b57]/10 text-[#ebd5ad]' : 'border-zinc-800 bg-black/40 text-zinc-400'}`}
+                  >
+                    <QrCode className="w-4 h-4 text-[#c29b57]" />
+                    <span className="text-[10px] font-medium">QR Bank</span>
+                  </button>
 
-                <button 
-                  type="button"
-                  onClick={() => setDepositMethod('bank_transfer')}
-                  className={`py-3 px-2 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition-all ${depositMethod === 'bank_transfer' ? 'border-[#c29b57] bg-[#c29b57]/10 text-[#ebd5ad]' : 'border-zinc-800 bg-black/40 text-zinc-400 hover:border-zinc-700'}`}
-                >
-                  <Landmark className="w-5 h-5 text-zinc-300" />
-                  <span className="text-[11px] font-medium">Chuyển Khoản</span>
-                </button>
+                  <button 
+                    type="button"
+                    onClick={() => setDepositMethod('bank_transfer')}
+                    className={`py-2 px-1 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${depositMethod === 'bank_transfer' ? 'border-[#c29b57] bg-[#c29b57]/10 text-[#ebd5ad]' : 'border-zinc-800 bg-black/40 text-zinc-400'}`}
+                  >
+                    <Landmark className="w-4 h-4 text-zinc-300" />
+                    <span className="text-[10px] font-medium">Chuyển Khoản</span>
+                  </button>
 
-                <button 
-                  type="button"
-                  onClick={() => setDepositMethod('momo')}
-                  className={`py-3 px-2 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition-all ${depositMethod === 'momo' ? 'border-[#c29b57] bg-[#c29b57]/10 text-[#ebd5ad]' : 'border-zinc-800 bg-black/40 text-zinc-400 hover:border-zinc-700'}`}
-                >
-                  <Smartphone className="w-5 h-5 text-pink-500" />
-                  <span className="text-[11px] font-medium">Ví MoMo</span>
-                </button>
+                  <button 
+                    type="button"
+                    onClick={() => setDepositMethod('momo')}
+                    className={`py-2 px-1 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${depositMethod === 'momo' ? 'border-[#c29b57] bg-[#c29b57]/10 text-[#ebd5ad]' : 'border-zinc-800 bg-black/40 text-zinc-400'}`}
+                  >
+                    <Smartphone className="w-4 h-4 text-pink-500" />
+                    <span className="text-[10px] font-medium">Ví MoMo</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Số tiền nạp (VNĐ)</label>
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 mb-1.5 uppercase tracking-wider">Số tiền nạp (VNĐ)</label>
                 <div className="relative">
                   <input 
                     type="text" 
@@ -339,70 +359,59 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
                       setDepositAmount(val);
                     }}
                     placeholder="Tối thiểu 10.000 VNĐ" 
-                    className="w-full bg-black border border-zinc-700 rounded-lg pl-4 pr-12 py-3 text-zinc-200 font-bold focus:border-[#c29b57] focus:outline-none" 
+                    className="w-full bg-black border border-zinc-700 rounded-lg pl-3 pr-10 py-2 text-sm text-zinc-200 font-bold focus:border-[#c29b57] focus:outline-none" 
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-medium text-sm">VNĐ</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 font-medium text-xs">VNĐ</span>
+                </div>
+                
+                {/* Preset amounts row */}
+                <div className="grid grid-cols-4 gap-1.5 mt-2">
+                  {['50000', '200000', '1000000', '5000000'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDepositAmount(preset)}
+                      className="py-1 bg-zinc-800/60 text-zinc-300 text-[10px] rounded hover:bg-zinc-700 border border-zinc-700 transition-colors"
+                    >
+                      +{new Intl.NumberFormat('vi-VN').format(Number(preset))}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {['50000', '200000', '1000000', '5000000'].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setDepositAmount(preset)}
-                    className="py-1.5 bg-zinc-800/60 text-zinc-300 text-xs rounded-md hover:bg-zinc-700 border border-zinc-700 transition-colors"
-                  >
-                    +{new Intl.NumberFormat('vi-VN').format(Number(preset))}
-                  </button>
-                ))}
-              </div>
-
               {depositMethod === 'bank_qr' && (
-                <div className="bg-black/60 rounded-lg p-4 border border-zinc-800/80 mb-6 text-center flex flex-col items-center gap-3">
-                  <div className="w-32 h-32 bg-white p-2 rounded-lg relative overflow-hidden flex items-center justify-center">
+                <div className="bg-black/60 rounded-lg p-2.5 border border-zinc-800/80 flex items-center gap-3">
+                  <div className="w-16 h-16 bg-white p-1 rounded-md shrink-0 flex items-center justify-center">
                     <img src="https://storage.googleapis.com/a1aa/image/qr_stub.png" alt="QR Code" className="w-full h-full object-contain" onError={(e) => {
-                      e.currentTarget.src = "https://placehold.co/150x150/png?text=QR+CODE";
+                      e.currentTarget.src = "https://placehold.co/80x80/png?text=QR+CODE";
                     }} />
                   </div>
-                  <div className="text-zinc-400 text-xs">
-                    <p className="font-semibold text-zinc-300 mb-1">Quét mã QR để chuyển tiền nhanh 24/7</p>
-                    <p>Nội dung chuyển khoản: <span className="text-[#c29b57] font-mono font-bold uppercase">{displayName}NAP</span></p>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="font-bold text-zinc-300 text-[11px] mb-0.5">Quét mã QR để chuyển tiền 24/7</p>
+                    <p className="text-[10px] text-zinc-400 truncate">Nội dung: <span className="text-[#c29b57] font-mono font-bold uppercase">{displayName}NAP</span></p>
                   </div>
                 </div>
               )}
 
-              {/* Ghi chú từ player */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Ghi chú từ Player (Lời nhắn)</label>
-                <textarea
+              {/* Lời nhắn / Ghi chú */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 mb-1.5 uppercase tracking-wider">Ghi chú từ Player (Lời nhắn)</label>
+                <input
+                  type="text"
                   value={depositNote}
                   onChange={(e) => setDepositNote(e.target.value)}
-                  placeholder="Ví dụ: Chuyển khoản từ Nguyen Van A hoặc ghi chú khác cho Admin..."
-                  className="w-full bg-black border border-zinc-700 rounded-lg p-3 text-zinc-200 text-sm focus:border-[#c29b57] focus:outline-none min-h-[60px]"
+                  placeholder="Ví dụ: Chuyển khoản từ Nguyen Van A..."
+                  className="w-full bg-black border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-[#c29b57] focus:outline-none"
                 />
               </div>
 
-              {/* Tải lên ảnh chứng từ */}
-              <div className="mb-6">
-                <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Ảnh minh chứng giao dịch (Chứng từ nạp tiền)</label>
+              {/* Chứng từ giao dịch */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 mb-1.5 uppercase tracking-wider">Ảnh minh chứng giao dịch (Chứng từ nạp tiền)</label>
                 
-                {/* Drag and drop zone */}
                 <div 
-                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-[#c29b57]', 'bg-[#c29b57]/5'); }}
-                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-[#c29b57]', 'bg-[#c29b57]/5'); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.classList.remove('border-[#c29b57]', 'bg-[#c29b57]/5');
-                    const file = e.dataTransfer.files?.[0];
-                    if (file && file.type.startsWith('image/')) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => setDepositProof(event.target?.result as string);
-                      reader.readAsDataURL(file);
-                    }
-                  }}
                   onClick={() => document.getElementById('proof-upload-input')?.click()}
-                  className="border-2 border-dashed border-zinc-800 hover:border-[#c29b57]/60 bg-black/40 rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                  className="border border-dashed border-zinc-700 hover:border-[#c29b57]/60 bg-black/40 rounded-lg p-2.5 cursor-pointer transition-all flex items-center justify-between"
                 >
                   <input 
                     id="proof-upload-input" 
@@ -419,39 +428,37 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
                     }}
                   />
                   
-                  {depositProof ? (
-                    <div className="relative w-full max-h-[140px] overflow-hidden rounded-lg border border-zinc-800">
-                      <img src={depositProof} alt="Proof" className="w-full h-full object-contain mx-auto" />
+                  <div className="flex items-center gap-2">
+                    <UploadCloud className="w-4 h-4 text-zinc-400" />
+                    <span className="text-zinc-300 text-xs">
+                      {depositProof ? '✓ Đã tải ảnh minh chứng' : 'Tải biên lai / hóa đơn'}
+                    </span>
+                  </div>
+                  {depositProof && (
+                    <div className="w-7 h-7 rounded overflow-hidden border border-zinc-800 shrink-0 relative group">
+                      <img src={depositProof} alt="Proof" className="w-full h-full object-cover" />
                       <button 
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setDepositProof(null); }}
-                        className="absolute top-2 right-2 bg-black/80 hover:bg-rose-600 text-white p-1 rounded-full text-xs font-bold transition-colors"
-                        title="Xóa ảnh"
+                        className="absolute inset-0 bg-black/60 text-white flex items-center justify-center text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Xóa"
                       >
                         ✕
                       </button>
                     </div>
-                  ) : (
-                    <>
-                      <UploadCloud className="w-8 h-8 text-zinc-500 group-hover:text-[#c29b57] transition-colors" />
-                      <div className="text-xs">
-                        <span className="text-[#c29b57] font-semibold">Kéo thả ảnh vào đây</span> hoặc <span className="text-zinc-300 font-semibold underline">nhấp để duyệt tệp</span>
-                      </div>
-                      <p className="text-[10px] text-zinc-500">Hỗ trợ các file ảnh JPEG, PNG, WEBP</p>
-                    </>
                   )}
                 </div>
 
                 {/* Quick mock receipt select */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Dùng ảnh minh chứng mẫu:</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] text-zinc-500">Mẫu chứng minh:</span>
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setDepositProof('https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=600&auto=format&fit=crop');
                     }}
-                    className="text-[10px] px-2.5 py-1 rounded bg-[#c29b57]/10 text-[#ebd5ad] border border-[#c29b57]/20 hover:bg-[#c29b57]/20 transition-colors"
+                    className="text-[9px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors"
                   >
                     Techcombank
                   </button>
@@ -461,16 +468,16 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
                       e.stopPropagation();
                       setDepositProof('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=600&auto=format&fit=crop');
                     }}
-                    className="text-[10px] px-2.5 py-1 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20 hover:bg-pink-500/20 transition-colors"
+                    className="text-[9px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors"
                   >
-                    Ví MoMo
+                    Momo
                   </button>
                 </div>
               </div>
 
               <button 
                 type="submit"
-                className="w-full py-3.5 rounded-lg bg-[#c29b57] text-black font-semibold hover:bg-[#ebd5ad] transition-colors shadow-lg shadow-[#c29b57]/10"
+                className="w-full py-3 rounded-lg bg-[#c29b57] text-black font-semibold hover:bg-[#ebd5ad] transition-colors shadow-lg text-xs"
               >
                 Xác nhận nạp tiền
               </button>
@@ -644,7 +651,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
         };
 
         content = (
-          <div className="p-4 flex flex-col gap-5 bg-gradient-to-b from-[#0a0a0a] to-[#121212] min-h-screen text-zinc-100">
+          <div className="p-4 flex flex-col gap-5 bg-gradient-to-b from-[#0a0a0a] to-[#121212] h-full text-zinc-100">
             {/* Real-time sync bar */}
             <div className="flex items-center justify-between px-3 py-2 bg-zinc-900/60 rounded-lg border border-zinc-800/80 text-[11px] text-zinc-400">
               <div className="flex items-center gap-2">
@@ -1139,6 +1146,17 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase">Mật khẩu rút tiền (Đăng ký mới)</label>
+                  <input 
+                    type="password" 
+                    value={bankWithdrawalPass}
+                    onChange={(e) => setBankWithdrawalPass(e.target.value)}
+                    placeholder="Đặt mật khẩu rút tiền mới..." 
+                    className="w-full bg-[#0d0d0d] border border-zinc-700 rounded-lg px-4 py-2.5 text-zinc-200 focus:border-[#c29b57] focus:outline-none font-mono" 
+                  />
+                </div>
+
                 <button 
                   type="submit"
                   className="w-full py-3 mt-3 rounded-lg bg-[#c29b57] text-black font-semibold hover:bg-[#ebd5ad] transition-colors"
@@ -1309,7 +1327,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     }
 
     return (
-      <div className="flex-1 overflow-y-auto bg-[#0d0d0d] flex flex-col min-h-screen">
+      <div className="flex-1 overflow-y-auto bg-[#0d0d0d] flex flex-col h-full">
         <div className="flex items-center justify-between p-4 bg-[#0d0d0d] sticky top-0 z-20 border-b border-zinc-800">
           <div className="flex items-center gap-3">
             <button onClick={() => setActiveSubView(null)} className="p-1 -ml-1 text-zinc-300 hover:text-white transition-colors">
@@ -1325,7 +1343,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
 
   if (activeSubView) {
     return (
-      <div className="relative flex-1 flex flex-col min-h-screen">
+      <div className="relative flex-1 flex flex-col h-full">
         {renderSubView()}
         {/* Toast Notification */}
         {toast && (
@@ -1340,105 +1358,161 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
     );
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto pb-32 bg-[#f7f9fb] flex flex-col min-h-screen relative">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 sticky top-0 z-20 bg-[#f7f9fb]/90 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1 -ml-1 text-[#001839] hover:text-[#0055c8] transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-[#001839] font-bold text-lg font-['Montserrat']">Cá nhân</h1>
-        </div>
-        <button onClick={onHome} className="p-2 text-[#001839] hover:text-[#0055c8] transition-colors rounded-full">
-          <Home className="w-5 h-5" />
-        </button>
-      </div>
+  const maskPhone = (phone: string) => {
+    if (!phone) return '09******66';
+    const trimmed = phone.trim();
+    if (trimmed.length >= 10) {
+      return trimmed.substring(0, 2) + '******' + trimmed.substring(trimmed.length - 2);
+    }
+    if (trimmed.length < 6) return trimmed;
+    return trimmed.substring(0, 2) + '*'.repeat(trimmed.length - 4) + trimmed.substring(trimmed.length - 2);
+  };
 
+  return (
+    <div className="flex-1 overflow-y-auto pb-32 bg-[#fbfbf9] flex flex-col h-full relative pt-8">
       {/* Tier Card */}
       <div className="px-4 mt-2">
-        <EditableImage
-          imageKey={`profile-tier-${tierName.toLowerCase()}`}
-          defaultSrc={tierImage}
-          isBackground={true}
-          className="rounded-2xl p-6 shadow-md relative flex flex-col items-center bg-cover bg-center overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
-          {tierName !== 'Member' && (
-             <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 animate-[shimmer_3s_infinite] pointer-events-none"></div>
-          )}
+        <div className="rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative flex flex-col items-center bg-[#b48b3b] overflow-hidden w-full text-center">
+          {/* Subtle metal shine overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-black/5 via-white/5 to-transparent pointer-events-none"></div>
           
           <div className="relative z-10 w-full flex flex-col items-center">
             {/* Avatar */}
             <div className="relative mb-3">
-               <div className="w-[84px] h-[84px] bg-[#f0d48f] rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm">
+               <div className="w-[84px] h-[84px] bg-[#f9e9c3] rounded-full flex items-center justify-center border-[3px] border-white overflow-hidden shadow-sm">
                  {avatarImage ? (
                     <img src={avatarImage} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <span className="text-[#a67c33] text-3xl font-bold font-['Montserrat']">
+                    <span className="text-[#b48b3b] text-3xl font-semibold font-['Montserrat'] tracking-wide">
                       {displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'TT'}
                     </span>
                   )}
                </div>
-               <button onClick={() => setIsEditProfileOpen(true)} className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 text-gray-500 hover:text-[#c89b4e] transition-colors">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+               <button 
+                 onClick={() => setIsEditProfileOpen(true)} 
+                 className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 text-gray-500 hover:text-[#b48b3b] transition-colors active:scale-90"
+               >
+                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                </button>
             </div>
             
-            <h2 className="text-white text-[22px] font-bold font-['Montserrat'] mb-1">{displayName || 'Trần Duy Thái'}</h2>
-            <p className="text-white/90 text-sm font-['Plus_Jakarta_Sans'] mb-6 font-medium">{`${displayName.toLowerCase().replace(/\s+/g, '')}@gmail.com`}</p>
+            <h2 className="text-white text-[20px] font-bold font-['Montserrat'] mb-1 tracking-wide">{displayName || 'Trần Duy Thái'}</h2>
+            <p className="text-white/80 text-[13px] font-['Plus_Jakarta_Sans'] mb-5 font-normal tracking-wide">{maskPhone(phoneNumber)}</p>
   
-            <div className="w-full flex items-center border-t border-white/30 pt-5">
+            {/* Divider line */}
+            <div className="w-full h-[1px] bg-white/20 mb-5"></div>
+
+            <div className="w-full flex items-center">
                <div className="flex-1 flex flex-col items-center">
-                  <span className="text-white font-bold text-lg font-['Montserrat'] uppercase tracking-wider">{tierName}</span>
-                  <span className="text-white/80 text-xs mt-1 font-['Plus_Jakarta_Sans']">Hạng thành viên</span>
+                  <span className="text-white font-extrabold text-[17px] font-['Montserrat'] uppercase tracking-wider">{tierName}</span>
+                  <span className="text-white/70 text-[11px] mt-0.5 font-['Plus_Jakarta_Sans'] font-medium">Hạng thành viên</span>
                </div>
-               <div className="w-[1px] h-10 bg-white/30"></div>
+               <div className="w-[1px] h-9 bg-white/20"></div>
                <div className="flex-1 flex flex-col items-center">
-                  <div className="flex items-center justify-center text-white font-bold text-lg font-['Montserrat']">
+                  <div className="flex items-center justify-center text-white font-extrabold text-[17px] font-['Montserrat'] tracking-wide">
                     {formatCurrency(balance).replace(' VNĐ', '')} 
-                    <div className="w-[18px] h-[18px] bg-[#f0d48f] rounded-full flex items-center justify-center ml-1.5 shadow-sm text-black">
-                      <svg className="w-2.5 h-2.5 text-[#a67c33] ml-[1px]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z" />
+                    <div className="w-4.5 h-4.5 bg-[#f9e9c3] rounded-full flex items-center justify-center ml-1.5 shadow-sm text-[#b48b3b]">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
                       </svg>
                     </div>
                   </div>
-                  <span className="text-white/80 text-xs mt-1 font-['Plus_Jakarta_Sans']">VND khả dụng</span>
+                  <span className="text-white/70 text-[11px] mt-0.5 font-['Plus_Jakarta_Sans'] font-medium">VND khả dụng</span>
                </div>
             </div>
           </div>
-        </EditableImage>
+        </div>
       </div>
 
       {/* Warning Box / Verified Status */}
+      {/* Warning Box / Verified Status */}
       <div className="px-4 mt-5">
-        <div 
-          className={`bg-white border rounded-xl p-4 flex gap-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
-            isIdentityVerified ? 'border-[#00875A]' : 'border-[#dfa135]'
-          }`} 
-          onClick={() => setActiveSubView('verification')}
-        >
-           <div className="mt-0.5">
-              {isIdentityVerified ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00875A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dfa135" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              )}
-           </div>
-           <div className="flex-1">
-              <h3 className={`font-bold text-[16px] mb-1.5 font-['Montserrat'] tracking-tight ${isIdentityVerified ? 'text-[#00875A]' : 'text-[#191c1e]'}`}>
-                {isIdentityVerified ? 'Tài khoản đã xác minh' : 'Tài khoản chưa xác thực'}
-              </h3>
-              <p className="text-[#43474f] text-[13px] mb-2.5 leading-relaxed font-['Plus_Jakarta_Sans']">
-                {isIdentityVerified 
-                  ? 'Tài khoản của bạn đã được bảo mật và sẵn sàng cho các giao dịch.' 
-                  : 'Vui lòng xác thực để nhận các đặc quyền và tài khoản được bảo mật tốt nhất.'}
-              </p>
-              {!isIdentityVerified && (
-                <span className="text-[#dfa135] font-semibold text-sm font-['Plus_Jakarta_Sans']">Xác thực ngay</span>
-              )}
-           </div>
-        </div>
+        {(() => {
+          if (isIdentityVerified) {
+            return (
+              <div 
+                className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 flex gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] cursor-pointer hover:shadow-md transition-shadow duration-250"
+                onClick={() => setActiveSubView('verification')}
+              >
+                <div className="mt-0.5 shrink-0 w-10 h-10 bg-[#e6f4ea] text-[#00875A] rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-[15px] mb-1 font-['Montserrat'] tracking-tight text-[#00875A]">
+                    Tài khoản đã xác minh
+                  </h3>
+                  <p className="text-[#334155] text-[12px] leading-relaxed font-['Plus_Jakarta_Sans'] font-medium">
+                    Tài khoản của bạn đã được bảo mật và sẵn sàng cho các giao dịch.
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          if (kycStatus === 'pending') {
+            return (
+              <div 
+                className="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-4 flex gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] cursor-pointer hover:shadow-md transition-shadow duration-250"
+                onClick={() => setActiveSubView('verification')}
+              >
+                <div className="mt-0.5 shrink-0 w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-[15px] mb-1 font-['Montserrat'] tracking-tight text-amber-600">
+                    Đang chờ phê duyệt
+                  </h3>
+                  <p className="text-[#334155] text-[12px] leading-relaxed font-['Plus_Jakarta_Sans'] font-medium">
+                    Hồ sơ xác thực của bạn đang được hệ thống phê duyệt. Vui lòng quay lại sau.
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          if (kycStatus === 'rejected') {
+            return (
+              <div 
+                className="bg-[#fef2f2] border border-[#fecaca] rounded-xl p-4 flex gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] cursor-pointer hover:shadow-md transition-shadow duration-250"
+                onClick={() => setActiveSubView('verification')}
+              >
+                <div className="mt-0.5 shrink-0 w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-[15px] mb-1 font-['Montserrat'] tracking-tight text-rose-600">
+                    Xác thực bị từ chối
+                  </h3>
+                  <p className="text-[#334155] text-[12px] mb-2 leading-relaxed font-['Plus_Jakarta_Sans'] font-medium">
+                    Lý do: {kycRejectReason || 'Thông tin không hợp lệ'}. Vui lòng xác thực lại.
+                  </p>
+                  <span className="text-rose-600 font-bold text-[13px] font-['Plus_Jakarta_Sans']">Xác thực lại</span>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div 
+              className="bg-[#fff9e6] border border-[#ffe0b2] rounded-xl p-4 flex gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] cursor-pointer hover:shadow-md transition-shadow duration-250"
+              onClick={() => setActiveSubView('verification')}
+            >
+              <div className="mt-0.5 shrink-0 w-10 h-10 bg-[#ffb74d] rounded-full flex items-center justify-center text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[15px] mb-1 font-['Montserrat'] tracking-tight text-[#001839]">
+                  Tài khoản chưa xác thực
+                </h3>
+                <p className="text-zinc-600 text-[12px] mb-2.5 leading-relaxed font-['Plus_Jakarta_Sans'] font-medium">
+                  Vui lòng xác thực để nhận các đặc quyền và tài khoản được bảo mật tốt nhất.
+                </p>
+                <span className="text-[#b48b3b] font-bold text-[13px] font-['Plus_Jakarta_Sans']">Xác thực ngay</span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Tiện ích Menu */}
@@ -1451,6 +1525,18 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigateToAd
                <span className="text-[#191c1e] font-medium text-[15px] font-['Plus_Jakarta_Sans']">Thông tin hồ sơ</span>
              </div>
              <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+          <button onClick={() => handleMenuClick('verification')} className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors border-b border-[#f2f4f6]">
+             <div className="flex items-center gap-3">
+               <ShieldCheck className="w-5 h-5 text-[#001839]" />
+               <span className="text-[#191c1e] font-medium text-[15px] font-['Plus_Jakarta_Sans']">Xác thực tài khoản</span>
+             </div>
+             <div className="flex items-center gap-1.5">
+               <span className={`text-[12px] font-bold ${isIdentityVerified ? 'text-emerald-600' : kycStatus === 'pending' ? 'text-amber-500' : kycStatus === 'rejected' ? 'text-rose-500' : 'text-[#b48b3b]'}`}>
+                 {isIdentityVerified ? 'Đã xác minh' : kycStatus === 'pending' ? 'Chờ duyệt' : kycStatus === 'rejected' ? 'Từ chối' : 'Chưa xác thực'}
+               </span>
+               <ChevronRight className="w-4 h-4 text-gray-400" />
+             </div>
           </button>
           <button onClick={() => handleMenuClick('bank_link')} className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors border-b border-[#f2f4f6]">
              <div className="flex items-center gap-3">

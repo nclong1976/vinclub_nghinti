@@ -1,114 +1,221 @@
 import React, { useContext } from 'react';
-import { ArrowLeft, Building2, Banknote, ArrowRight, Handshake } from 'lucide-react';
+import { ArrowLeft, Building2, Banknote, ArrowRight } from 'lucide-react';
 import { UserContext } from './UserContext';
 
 interface VinpearlProjectsViewProps {
   onBack: () => void;
   onSelectProject: (projectId: string) => void;
   onNavigate: (view: any) => void;
+  onNavigateToDeposit: () => void;
 }
 
-export default function VinpearlProjectsView({ onBack, onSelectProject, onNavigate }: VinpearlProjectsViewProps) {
-  const { adminProjects } = useContext(UserContext);
+export default function VinpearlProjectsView({ onBack, onSelectProject, onNavigate, onNavigateToDeposit }: VinpearlProjectsViewProps) {
+  const { adminProjects, updateProjectStatus, updateProjectDetails, role, balance } = useContext(UserContext);
+  const isAdmin = role === 'admin' || role === 'super_admin';
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f7f9fb] flex flex-col min-h-screen text-[#001839] pb-32">
-      <header className="w-full top-0 sticky z-40 bg-white border-b border-[#E2E8F0] flex items-center px-4 h-16 gap-3">
-        <button onClick={onBack} className="text-[#001839] hover:bg-[#f2f4f6] transition-colors p-2 rounded-full active:opacity-80">
-          <ArrowLeft className="w-6 h-6" />
+    <div className="flex-1 overflow-y-auto bg-[#f5f6f8] flex flex-col w-full text-zinc-850 pb-32">
+      {/* Custom range slider CSS style */}
+      <style>{`
+        .custom-range-slider {
+          -webkit-appearance: none;
+          width: 100%;
+          background: transparent;
+        }
+        .custom-range-slider:focus {
+          outline: none;
+        }
+        .custom-range-slider::-webkit-slider-runnable-track {
+          width: 100%;
+          height: 5px;
+          cursor: pointer;
+          background: #e2e8f0;
+          border-radius: 99px;
+        }
+        .custom-range-slider::-webkit-slider-thumb {
+          height: 14px;
+          width: 14px;
+          border-radius: 9999px;
+          background: #a2855a;
+          cursor: pointer;
+          -webkit-appearance: none;
+          margin-top: -4.5px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+          border: 1.5px solid #ffffff;
+          transition: transform 0.1s;
+        }
+        .custom-range-slider::-webkit-slider-thumb:active {
+          transform: scale(1.3);
+        }
+      `}</style>
+
+      {/* Premium Minimal Header */}
+      <header className="w-full top-0 sticky z-40 bg-white border-b border-zinc-200/80 flex items-center px-4 h-16 gap-3 shrink-0 shadow-sm">
+        <button 
+          onClick={onBack} 
+          className="text-[#001839] hover:bg-gray-100 transition-all p-2 rounded-full active:scale-90 flex items-center justify-center"
+        >
+          <ArrowLeft className="w-5.5 h-5.5" />
         </button>
-        <h1 className="font-bold text-[20px] text-[#001839] font-['Montserrat']">Siêu dự án Đầu tư</h1>
+        <h1 className="font-bold text-[18px] text-[#001839] tracking-tight font-['Montserrat']">
+          Đầu tư Vinpearl
+        </h1>
       </header>
 
-      <main className="max-w-[1280px] mx-auto px-4 md:px-6 pt-8 w-full">
-        <section className="mb-8 text-center md:text-left">
-          <h2 className="text-[28px] md:text-[40px] font-bold text-[#001839] mb-2 font-['Montserrat'] leading-tight tracking-tight">Cơ hội sinh lời vượt trội</h2>
-          <p className="text-[14px] md:text-[16px] text-[#475569] max-w-2xl font-['Plus_Jakarta_Sans'] leading-relaxed">
-            Danh mục các siêu dự án trọng điểm với tiềm năng tăng trưởng bứt phá, dành riêng cho các nhà đầu tư chiến lược.
+      <main className="px-5 pt-6 w-full flex-1 flex flex-col">
+        {/* Simple Title */}
+        <section className="mb-6">
+          <h2 className="text-[20px] font-bold text-[#a2855a] mb-1 font-['Montserrat'] tracking-wide">
+            SIÊU DỰ ÁN CHIẾN LƯỢC
+          </h2>
+          <p className="text-[12.5px] text-zinc-450 font-['Plus_Jakarta_Sans'] font-medium">
+            Danh mục đầu tư bất động sản & công nghệ đẳng cấp thuộc hệ sinh thái.
           </p>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {adminProjects.map(p => (
-            <article key={p.id} className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col">
-              <div className="relative h-48 md:h-60 overflow-hidden bg-[#e6e8ea]">
-                {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-200">
-                    <Building2 className="w-12 h-12" />
-                  </div>
-                )}
-                
-                <div className="absolute top-4 left-4 flex items-center gap-2">
-                  {p.title === 'VinFast Global Giga-Factory' ? (
-                    <div className="bg-[#001839] text-white px-3.5 py-1.5 rounded-md border border-[#001839] shadow-sm flex items-center gap-1.5">
-                      <Handshake className="w-3.5 h-3.5 text-white" />
-                      <span className="text-[11px] font-bold tracking-wide uppercase font-['Plus_Jakarta_Sans']">Đối tác chiến lược</span>
-                    </div>
+        {/* Minimal Projects List */}
+        <div className="flex flex-col gap-6">
+          {adminProjects.map(p => {
+            const interestRateStr = p.interestRate.endsWith('%') ? p.interestRate.slice(0, -1) : p.interestRate;
+            const interestRateVal = Number(interestRateStr);
+            const formattedInterest = (isNaN(interestRateVal) ? p.interestRateValue * 100 : interestRateVal).toFixed(2) + ' %';
+            const totalMinutes = p.durationDays * 24 * 60;
+
+            return (
+              <article 
+                key={p.id} 
+                className="bg-white rounded-2xl border border-zinc-200/60 overflow-hidden shadow-[0_4px_25px_rgba(0,0,0,0.03)] flex flex-col transition-all duration-300"
+              >
+                {/* Image with iOS Switch Switcher */}
+                <div className="relative h-44 overflow-hidden bg-zinc-100 shrink-0">
+                  {p.imageUrl ? (
+                    <img 
+                      src={p.imageUrl} 
+                      alt={p.title} 
+                      className="w-full h-full object-cover" 
+                      referrerPolicy="no-referrer" 
+                    />
                   ) : (
-                    <div className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-[#E2E8F0] shadow-sm flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#C49A6C]"></span>
-                      <span className="text-[11px] font-bold text-[#001839] tracking-wider uppercase font-['Plus_Jakarta_Sans']">Đang gọi vốn</span>
+                    <div className="w-full h-full flex items-center justify-center text-zinc-400 bg-zinc-50">
+                      <Building2 className="w-10 h-10" />
+                    </div>
+                  )}
+                  
+                  {/* iOS Style Switch in Corner */}
+                  {isAdmin && (
+                    <div className="absolute top-3 right-3 z-30 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-md">
+                      <span className="text-[8px] font-bold text-white uppercase tracking-widest select-none">
+                        {p.status === 'ACTIVE' ? 'Đầu tư Mở' : 'Khóa'}
+                      </span>
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextStatus = p.status === 'ACTIVE' ? 'CLOSED' : 'ACTIVE';
+                          updateProjectStatus(p.id, nextStatus);
+                        }}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-all duration-200 cursor-pointer ${
+                          p.status === 'ACTIVE' ? 'bg-[#a2855a]' : 'bg-zinc-650'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-all duration-200 ${
+                          p.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0'
+                        }`} />
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="p-5 flex-1 flex flex-col">
-                <h3 className="text-[20px] md:text-[22px] font-bold text-[#001839] mb-4 line-clamp-2 font-['Montserrat'] min-h-[56px] leading-tight">
-                  {p.title}
-                </h3>
-                
-                <div className="space-y-4 flex-1 mb-6">
-                  <div className="flex justify-between items-center border-b border-[#F1F5F9] pb-3">
-                    <span className="text-[14px] text-[#475569] flex items-center gap-2 font-['Plus_Jakarta_Sans'] font-medium">
-                      <Building2 className="w-[18px] h-[18px] text-[#64748B]" /> Quy mô
-                    </span>
-                    <span className="text-[20px] font-bold text-[#001839] font-['Montserrat']">
-                      {p.scale || `${(p.targetCapital || 0)/10**9} Tỷ VNĐ`}
-                    </span>
+                {/* Minimal Card Body */}
+                <div className="p-5 flex-1 flex flex-col gap-4 bg-white">
+                  <div className="flex items-start">
+                    <div className="w-1.5 h-7.5 bg-[#a23b3b] rounded-full mr-3 shrink-0 mt-0.5"></div>
+                    <h3 className="text-[15.5px] font-bold text-[#001839] font-['Montserrat'] leading-snug tracking-tight">
+                      {p.title}
+                    </h3>
                   </div>
-                  
-                  <div className="flex justify-between items-center border-b border-[#F1F5F9] pb-3">
-                    <span className="text-[14px] text-[#475569] flex items-center gap-2 font-['Plus_Jakarta_Sans'] font-medium">
-                      <Banknote className="w-[18px] h-[18px] text-[#64748B]" /> Đầu tư tối thiểu
-                    </span>
-                    <span className="text-[20px] font-bold text-[#C49A6C] font-['Montserrat']">
-                      {p.minAmount.endsWith('VNĐ') ? p.minAmount : `${p.minAmount} VNĐ`}
-                    </span>
+
+                  {/* 3 Columns Stat Grid with dividers */}
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-4 text-center">
+                    <div className="flex-1 flex flex-col items-center">
+                      <span className="text-[#a23b3b] font-extrabold text-[15px] font-['Montserrat']">{formattedInterest}</span>
+                      <span className="text-zinc-400 text-[9.5px] mt-1 font-semibold font-['Plus_Jakarta_Sans'] leading-normal">Lãi suất hàng ngày</span>
+                    </div>
+                    <div className="w-[1px] h-7 bg-zinc-200"></div>
+                    <div className="flex-1 flex flex-col items-center">
+                      <span className="text-[#a23b3b] font-extrabold text-[15px] font-['Montserrat']">{totalMinutes} phút</span>
+                      <span className="text-zinc-400 text-[9.5px] mt-1 font-semibold font-['Plus_Jakarta_Sans'] leading-normal">Thời hạn của dự án</span>
+                    </div>
+                    <div className="w-[1px] h-7 bg-zinc-200"></div>
+                    <div className="flex-1 flex flex-col items-center">
+                      <span className="text-[#a23b3b] font-extrabold text-[15px] font-['Montserrat']">{p.minAmount.replace(' VNĐ', '')}</span>
+                      <span className="text-zinc-400 text-[9.5px] mt-1 font-semibold font-['Plus_Jakarta_Sans'] leading-normal">Số tiền bắt đầu</span>
+                    </div>
                   </div>
-                  
-                  <div className="pt-2">
-                    <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider mb-2 text-[#475569] font-['Plus_Jakarta_Sans']">
-                      <span>Tiến độ huy động</span>
-                      <span className="text-[#001839]">{p.progress}%</span>
+
+                  {/* Scale & Payout info */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-[13px] font-semibold text-zinc-700">
+                      <span>Quy mô dự án:</span>
+                      <span className="text-[#001839] font-bold text-[14px] font-['Montserrat']">
+                        {p.scale}
+                      </span>
                     </div>
-                    <div className="w-full bg-[#E2E8F0] rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-[#001839] h-1.5 rounded-full transition-all duration-500" style={{ width: `${p.progress}%` }}></div>
-                    </div>
+                    <p className="text-zinc-400 text-[11px] font-medium font-['Plus_Jakarta_Sans']">
+                      Hoàn lãi hàng ngày, trả gốc khi đáo hạn
+                    </p>
+                  </div>
+
+                  {/* Action button */}
+                  <button 
+                    onClick={() => {
+                      if (balance < p.minInvestAmount) {
+                        onNavigateToDeposit();
+                      } else {
+                        onSelectProject(p.id);
+                      }
+                    }} 
+                    className={`w-full text-[13px] py-3 rounded-xl transition-all duration-200 flex items-center justify-center font-bold tracking-wider active:scale-[0.98] shadow-sm ${
+                      p.status === 'ACTIVE'
+                        ? 'bg-[#a2855a] text-white hover:bg-[#967a50]'
+                        : 'bg-zinc-200 text-zinc-400 cursor-not-allowed shadow-none'
+                    }`}
+                    disabled={p.status !== 'ACTIVE'}
+                  >
+                    Gửi tiền ngay
+                  </button>
+
+                   {/* Interactive Progress Bar with range slider */}
+                  <div className="flex items-center justify-between text-[13px] font-semibold text-zinc-700" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-zinc-500">Tiến độ:</span>
+                    {isAdmin ? (
+                      <div className="flex-1 mx-3 relative flex items-center h-4">
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          value={p.progress} 
+                          onChange={(e) => {
+                            updateProjectDetails(p.id, { progress: Number(e.target.value) });
+                          }}
+                          className="custom-range-slider"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-1 mx-3 relative flex items-center h-4">
+                        <div className="w-full bg-zinc-200 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            className="bg-[#a2855a] h-full rounded-full transition-all duration-300"
+                            style={{ width: `${p.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <span className="text-[#001839] font-bold font-['Montserrat']">{p.progress}%</span>
                   </div>
                 </div>
-
-                {p.status === 'ACTIVE' ? (
-                  <button 
-                    onClick={() => onSelectProject(p.id)} 
-                    className={`w-full text-[14px] py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-bold font-['Plus_Jakarta_Sans'] active:scale-[0.98] ${
-                      p.title === 'VinFast Global Giga-Factory'
-                        ? 'bg-white text-[#001839] border border-[#E2E8F0] hover:bg-gray-50 hover:border-gray-300'
-                        : 'bg-[#001839] text-white hover:bg-[#002c5f] shadow-[0_4px_12px_rgba(0,24,57,0.15)]'
-                    }`}
-                  >
-                    Chi tiết <ArrowRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <div className="w-full bg-[#F1F5F9] text-[#94A3B8] text-[14px] py-3 rounded-lg flex items-center justify-center gap-2 font-bold font-['Plus_Jakarta_Sans'] border border-[#E2E8F0]">
-                    ĐÃ ĐÓNG / ĐỦ VỐN
-                  </div>
-                )}
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </main>
     </div>

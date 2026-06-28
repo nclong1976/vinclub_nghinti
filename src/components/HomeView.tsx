@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
 import EditableImage from './EditableImage';
 import { ViewState } from '../App';
-import vinfastImg from '../assets/images/regenerated_image_1782453369828.png';
 import viettelIdcImage from '../assets/images/regenerated_image_1782460662494.jpg';
 import newNewsImage from '../assets/images/regenerated_image_1782512288743.jpg';
+import vinfastIcon from '../assets/images/logo-vinfast-1.png';
+import vinpearlIcon from '../assets/images/logo-vinpearl-1.png';
 import { db } from '../firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query } from 'firebase/firestore';
+import NotificationsPanel from './NotificationsPanel';
 
 interface HomeViewProps {
   onNavigate: (view: ViewState, subView?: string | null) => void;
-  onNavigateToAdmin: () => void;
 }
 
 export default function HomeView({
-  onNavigate,
-  onNavigateToAdmin
+  onNavigate
 }: HomeViewProps) {
-  const { displayName, balance, cmsNews, articlesList } = useUser();
+  const { displayName, balance, cmsNews, articlesList, userId } = useUser();
   const [tickerMessages, setTickerMessages] = useState<string[]>([
     "Khách hàng ***829 vừa rút thành công 3.292.000.000 VNĐ",
     "Khách hàng ***415 vừa rút thành công 1.500.000.000 VNĐ",
@@ -32,6 +32,93 @@ export default function HomeView({
     });
     return () => unsub();
   }, []);
+
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [readIds, setReadIds] = useState<string[]>([]);
+  const [shouldRing, setShouldRing] = useState(false);
+  const prevCountRef = useRef(0);
+
+  const [pointsData, setPointsData] = useState({
+    current_points: 650,
+    next_tier_points: 1000,
+    next_tier_name: 'GOLD'
+  });
+  const [animatedWidth, setAnimatedWidth] = useState(0);
+
+  // Active user key for localStorage
+  const userKey = userId || 'guest';
+
+  // Load read notification IDs from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`read-notifications-${userKey}`);
+    if (saved) {
+      try {
+        setReadIds(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      setReadIds([]);
+    }
+  }, [userKey, isNotificationsOpen]);
+
+  // Sync real-time notifications from Firestore
+  useEffect(() => {
+    const q = query(collection(db, "notifications"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: any[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      setNotifications(items);
+    }, (error) => {
+      console.error(error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const unreadCount = notifications.filter(n => !readIds.includes(n.id)).length;
+  const hasUnread = unreadCount > 0;
+
+  // Explicit state variables matching technical design guidelines
+  const has_unread = hasUnread;
+  const notification_count = unreadCount;
+
+  useEffect(() => {
+    if (unreadCount > prevCountRef.current && prevCountRef.current > 0) {
+      setShouldRing(true);
+      const timer = setTimeout(() => setShouldRing(false), 500);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount]);
+
+  // Sync real-time points from Firestore
+  useEffect(() => {
+    if (!userId) return;
+    const userDocRef = doc(db, 'users', userId);
+    const unsub = onSnapshot(userDocRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setPointsData({
+          current_points: data.current_points !== undefined ? Number(data.current_points) : 650,
+          next_tier_points: data.next_tier_points !== undefined ? Number(data.next_tier_points) : 1000,
+          next_tier_name: data.next_tier_name || 'GOLD'
+        });
+      }
+    });
+    return () => unsub();
+  }, [userId]);
+
+  const progressPercent = Math.min(100, Math.max(0, (pointsData.current_points / pointsData.next_tier_points) * 100));
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedWidth(progressPercent);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [progressPercent]);
 
   // Get initials for avatar
   const getInitials = (name: string) => {
@@ -112,16 +199,38 @@ export default function HomeView({
       <style>{`
         .status-progress-bar {
           height: 4px;
-          background: rgba(0, 0, 0, 0.08);
+          background: #E5E5EA;
           border-radius: 2px;
           width: 100%;
           position: relative;
         }
         .status-progress-fill {
           height: 100%;
-          background: #bc8f5f;
+          background: linear-gradient(90deg, #BF953F 0%, #FCF6BA 50%, #B38728 100%);
           border-radius: 2px;
-          width: 60%;
+          width: 0%;
+          transition: width 1s ease-in-out;
+        }
+        @keyframes ring {
+          0% { transform: rotate(0deg); }
+          15% { transform: rotate(-15deg); }
+          30% { transform: rotate(15deg); }
+          45% { transform: rotate(-10deg); }
+          60% { transform: rotate(10deg); }
+          75% { transform: rotate(-5deg); }
+          90% { transform: rotate(5deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-ring {
+          animation: ring 0.5s ease-in-out;
+        }
+        .bell-btn:hover .bell-icon,
+        .bell-btn:active .bell-icon {
+          transform: scale(1.08);
+          color: #BF953F;
+          fill: currentColor;
+          fill-opacity: 0.25;
+          filter: brightness(1.1);
         }
         .service-icon-container {
           width: 60px;
@@ -176,13 +285,6 @@ export default function HomeView({
             </div>
           </div>
         </div>
-        <button 
-          onClick={onNavigateToAdmin}
-          className="flex items-center gap-1 ml-2 flex-shrink-0 hover:opacity-80 transition-all cursor-pointer"
-        >
-          <span className="text-[#00FF00] text-xs">✦</span>
-          <span className="text-xs font-black text-[#00FF00] uppercase tracking-wide">Hội</span>
-        </button>
       </div>
 
       {/* Header Profile Info */}
@@ -202,15 +304,18 @@ export default function HomeView({
           </div>
           
           {/* Tier Status */}
-          <div className="flex flex-col items-end flex-1 ml-4 max-w-[180px]">
-            <div className="flex items-center text-xs font-bold mb-1 text-gray-500">
-              <span className="mr-0.5">Hạng tiếp theo: GOLD</span>
-              <svg className="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <div 
+            onClick={() => onNavigate('cardRanking')}
+            className="flex flex-col items-end flex-1 ml-4 max-w-[180px] cursor-pointer hover:opacity-80 transition-all select-none"
+          >
+            <div className="flex items-center text-[10px] font-extrabold mb-1.5 text-zinc-500 uppercase tracking-wider">
+              <span className="mr-0.5">Hạng tiếp theo: {pointsData.next_tier_name}</span>
+              <svg className="h-3 w-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
               </svg>
             </div>
             <div className="status-progress-bar">
-              <div className="status-progress-fill"></div>
+              <div className="status-progress-fill" style={{ width: `${animatedWidth}%` }}></div>
             </div>
           </div>
         </div>
@@ -251,13 +356,25 @@ export default function HomeView({
         <div className="flex items-center gap-2">
           {/* Notifications Button */}
           <button 
-            onClick={() => onNavigate('profile', 'transaction_history')}
-            className="w-10 h-10 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 cursor-pointer active:scale-95 transition-all text-gray-800"
-            title="Lịch sử thông báo"
+            onClick={() => setIsNotificationsOpen(true)}
+            className="w-10 h-10 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 cursor-pointer active:scale-95 transition-all text-gray-850 relative bell-btn"
+            title="Thông báo"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
+            <svg 
+              className={`w-5 h-5 transition-transform bell-icon ${shouldRing ? 'animate-ring' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" strokeLinecap="round" strokeLinejoin="round"></path>
             </svg>
+            
+            {hasUnread && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 bg-[#FF3B30] text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white animate-in zoom-in-50 duration-200">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
         </div>
       </section>
@@ -311,7 +428,7 @@ export default function HomeView({
           className="flex flex-col items-center text-center cursor-pointer group outline-none"
         >
           <div className="service-icon-container mb-2">
-            <img alt="Vinpearl" className="w-8 h-8 object-contain" src="https://cdn.haitrieu.com/wp-content/uploads/2022/01/Icon-Vinpearl.png" />
+            <img alt="Vinpearl" className="w-8 h-8 object-contain" src={vinpearlIcon} />
           </div>
           <span className="text-[11px] font-bold leading-tight text-gray-700 group-hover:text-amber-700 transition-colors">Vinpearl<br/><br/></span>
         </button>
@@ -324,7 +441,7 @@ export default function HomeView({
           <div className="service-icon-container mb-2">
             <EditableImage
               imageKey="home-vinfast-logo"
-              defaultSrc={vinfastImg}
+              defaultSrc={vinfastIcon}
               isBackground={false}
               className="w-8 h-8 flex items-center justify-center relative object-contain"
             />
@@ -437,6 +554,7 @@ export default function HomeView({
         </div>
       </section>
 
+      <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
     </div>
   );
 }

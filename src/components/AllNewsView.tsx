@@ -76,7 +76,7 @@ export default function AllNewsView({ onBack, onNavigateNews }: AllNewsViewProps
   const newsList = combined;
 
   return (
-    <div className="bg-[#f7f9fb] min-h-screen text-[#191c1e] font-sans antialiased pb-24 flex flex-col">
+    <div className="bg-[#f7f9fb] h-full overflow-y-auto text-[#191c1e] font-sans antialiased pb-24 flex flex-col">
       {/* Header */}
       <header className="bg-white text-[#001839] sticky top-0 w-full z-50 flex items-center justify-between px-4 h-16 shadow-sm shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 cursor-pointer hover:bg-gray-100 rounded-full transition-colors active:scale-95 duration-200">

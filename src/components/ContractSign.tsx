@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from './UserContext';
 import { Project } from '../types';
 import SignaturePad from './SignaturePad';
-import { PenTool, Keyboard, BookmarkCheck, FileText, CheckCircle2, Loader2, ScanLine, ShieldCheck } from 'lucide-react';
-import contractStampImage from '../assets/images/regenerated_image_1782460662494.jpg';
+import { PenTool, Keyboard, BookmarkCheck, FileText, Loader2, ScanLine, ShieldCheck } from 'lucide-react';
 import contractStampImage2 from '../assets/images/regenerated_image_1782467280444.png';
 
 interface ContractSignProps {
@@ -40,6 +39,7 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
     }, 1500);
     return () => clearTimeout(timer1);
   }, []);
+  
   const interestRateDisplay = (project.interestRateValue * 100).toFixed(2) + '%';
   const estimatedInterest = Math.round(amount * project.interestRateValue * project.durationDays);
   const totalReturn = amount + estimatedInterest;
@@ -99,8 +99,8 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
       }
       finalContent = typedName.trim();
 
-      // Automatically save to saved list for next time
-      const isAlreadySaved = savedSignatures.some(s => s.type === 'type' && s.content === typedName);
+      // Save to saved list
+      const isAlreadySaved = savedSignatures.some(s => s.content === typedName.trim());
       if (!isAlreadySaved) {
         const newSaved = {
           id: 'SIG-' + Math.floor(Math.random() * 100000),
@@ -113,25 +113,27 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
         localStorage.setItem('user-electronic-signatures', JSON.stringify(updated));
       }
     } else if (activeTab === 'saved') {
-      const selected = savedSignatures.find(s => s.id === selectedSavedId);
-      if (!selected) {
+      if (!selectedSavedId) {
         setErrorMsg('Vui lòng chọn một chữ ký đã lưu.');
         return;
       }
-      finalType = selected.type as 'draw' | 'type' | 'saved';
-      finalContent = selected.content;
+      const sel = savedSignatures.find(s => s.id === selectedSavedId);
+      if (!sel) return;
+      finalType = sel.type as 'draw' | 'type' | 'saved';
+      finalContent = sel.content;
     }
 
     onSignComplete(finalType, finalContent);
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-white">
+    <div className="flex-1 overflow-y-auto bg-[#080808] flex flex-col w-full text-zinc-100 font-['Plus_Jakarta_Sans'] pb-20">
+      
       {/* Scrollable contract document container */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 max-h-[50vh] scrollbar-hide border border-zinc-100 bg-zinc-50 rounded-xl mb-4 shadow-inner">
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 max-h-[50vh] scrollbar-hide border border-zinc-800/80 bg-zinc-900/40 rounded-xl mb-4 shadow-inner">
         
         {/* Document Frame styling */}
-        <div className="bg-white p-5 md:p-6 border border-zinc-200 shadow-sm rounded-lg text-zinc-800 text-xs leading-relaxed space-y-4 font-serif relative">
+        <div className="bg-white p-5 md:p-6 border border-zinc-200 shadow-sm rounded-lg text-zinc-800 text-[11px] leading-relaxed space-y-4 font-serif relative">
           
           {/* Background Decorative Gold Crest */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-3 pointer-events-none select-none">
@@ -153,7 +155,7 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
             <p className="text-[10px] text-zinc-500 font-sans italic">Mã số hợp đồng: {contractId}</p>
           </div>
 
-          <div className="space-y-2 text-[11px]">
+          <div className="space-y-2">
             <p>Hôm nay, ngày {currentDateString}, tại Hệ thống điện tử VinClub, chúng tôi gồm các bên:</p>
             
             {/* Party A */}
@@ -231,17 +233,17 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
           {/* Signatures visual representations */}
           <div className="grid grid-cols-2 gap-4 pt-6 border-t border-zinc-200 font-sans">
             
-            {/* Party A Representative visual stamp */}
+            {/* Party A Representative */}
             <div className="text-center space-y-1.5 relative flex flex-col items-center">
               <p className="font-bold text-[11px] text-zinc-700">ĐẠI DIỆN BÊN A (VINCLUB)</p>
               <div className="h-24 flex items-center justify-center relative">
                 {sealStatus === 'idle' || sealStatus === 'extracting' ? (
                   <div className="flex flex-col items-center justify-center text-zinc-400 gap-2 h-full">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#dfa135]" />
+                    <Loader2 className="w-6 h-6 animate-spin text-[#c29b57]" />
                     <span className="text-[9px] animate-pulse uppercase tracking-wider">Đang trích xuất con dấu...</span>
                   </div>
                 ) : sealStatus === 'verifying' ? (
-                  <div className="flex flex-col items-center justify-center text-[#dfa135] gap-2 h-full">
+                  <div className="flex flex-col items-center justify-center text-[#c29b57] gap-2 h-full">
                     <ScanLine className="w-6 h-6 animate-pulse" />
                     <span className="text-[9px] animate-pulse uppercase tracking-wider">Xác minh chữ ký số...</span>
                   </div>
@@ -254,10 +256,10 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
                   </div>
                 )}
               </div>
-              <p className="text-[10px] font-bold text-zinc-800 text-center uppercase">NGƯỜI ĐẠI DIỆN THEO PHÁP LUẬT - PHÓ TỔNG GIÁM ĐỐC</p>
+              <p className="text-[9px] font-bold text-zinc-800 text-center uppercase">NGƯỜI ĐẠI DIỆN THEO PHÁP LUẬT - PHÓ TỔNG GIÁM ĐỐC</p>
             </div>
 
-            {/* Party B Customer signature visual preview */}
+            {/* Party B Customer signature */}
             <div className="text-center space-y-1.5 flex flex-col items-center justify-between border-l border-zinc-100 pl-4">
               <p className="font-bold text-[11px] text-zinc-700">ĐẠI DIỆN BÊN B (KÝ TÊN)</p>
               
@@ -289,7 +291,7 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
                     return null;
                   })()
                 ) : (
-                  <span className="text-[10px] text-zinc-300 italic">Chưa ký điện tử</span>
+                  <span className="text-[10px] text-zinc-350 italic">Chưa ký điện tử</span>
                 )}
               </div>
 
@@ -303,20 +305,20 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
       </div>
 
       {/* Signature Area Interactive tabs */}
-      <div className="border border-zinc-200 rounded-xl p-3.5 bg-white space-y-3.5">
+      <div className="border border-zinc-800/80 rounded-xl p-4 bg-[#121212] space-y-4 shadow-lg mx-4">
         
         {/* Navigation Tabs for Signing Methods */}
-        <div className="flex border-b border-zinc-100 pb-2">
+        <div className="flex border-b border-zinc-800/60 pb-2">
           <button
             type="button"
             onClick={() => {
               setActiveTab('draw');
               setErrorMsg(null);
             }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold transition-all border-b-2 -mb-[10px] ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all border-b-2 -mb-[10px] ${
               activeTab === 'draw'
-                ? 'border-[#8c7b50] text-[#8c7b50]'
-                : 'border-transparent text-zinc-400 hover:text-zinc-600'
+                ? 'border-[#c29b57] text-[#c29b57]'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <PenTool className="w-3.5 h-3.5" />
@@ -329,14 +331,14 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
               setActiveTab('type');
               setErrorMsg(null);
             }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold transition-all border-b-2 -mb-[10px] ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all border-b-2 -mb-[10px] ${
               activeTab === 'type'
-                ? 'border-[#8c7b50] text-[#8c7b50]'
-                : 'border-transparent text-zinc-400 hover:text-zinc-600'
+                ? 'border-[#c29b57] text-[#c29b57]'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <Keyboard className="w-3.5 h-3.5" />
-            Gõ Tên Chữ Ký
+            Gõ Tên
           </button>
 
           <button
@@ -349,47 +351,47 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
                 setSelectedSavedId(savedSignatures[0].id);
               }
             }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold transition-all border-b-2 -mb-[10px] disabled:opacity-30 disabled:cursor-not-allowed ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all border-b-2 -mb-[10px] disabled:opacity-20 disabled:cursor-not-allowed ${
               activeTab === 'saved'
-                ? 'border-[#8c7b50] text-[#8c7b50]'
-                : 'border-transparent text-zinc-400 hover:text-zinc-600'
+                ? 'border-[#c29b57] text-[#c29b57]'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <BookmarkCheck className="w-3.5 h-3.5" />
-            Chữ Ký Đã Lưu ({savedSignatures.length})
+            Đã Lưu ({savedSignatures.length})
           </button>
         </div>
 
         {/* Dynamic Inner Tab Content */}
-        <div>
+        <div className="pt-1">
           {errorMsg && (
-            <div className="mb-2 text-red-600 text-[11px] font-medium bg-red-50 border border-red-100 p-2 rounded-lg">
+            <div className="mb-3 text-red-200 text-[12px] font-medium bg-red-950/30 border border-red-900/60 p-2.5 rounded-xl">
               {errorMsg}
             </div>
           )}
 
           {activeTab === 'draw' && (
-            <div className="pt-1.5">
-              <SignaturePad onSave={setDrawnSignature} strokeColor="#020617" />
+            <div className="pt-1">
+              <SignaturePad onSave={setDrawnSignature} strokeColor="#090d16" />
             </div>
           )}
 
           {activeTab === 'type' && (
-            <div className="pt-1.5 space-y-3">
+            <div className="pt-1 space-y-3">
               <input
                 type="text"
-                placeholder="Nhập đầy đủ Họ và Tên của bạn..."
+                placeholder="Nhập đầy đủ Họ và Tên..."
                 value={typedName}
                 onChange={(e) => {
                   setTypedName(e.target.value);
                   setErrorMsg(null);
                 }}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-zinc-800 text-xs font-medium bg-white outline-none focus:border-[#8c7b50]"
+                className="w-full border border-zinc-800 rounded-xl px-4 py-3 text-white text-[13px] font-medium bg-[#161616] outline-none focus:border-[#c29b57] placeholder:text-zinc-600"
               />
-              <div className="flex flex-col items-center justify-center bg-zinc-50 border border-zinc-100 rounded-xl py-4 select-none">
-                <span className="text-[10px] text-zinc-400 tracking-wide font-sans mb-1 uppercase">Bản xem trước chữ ký ký điện tử</span>
+              <div className="flex flex-col items-center justify-center bg-[#161616] border border-zinc-800/60 rounded-xl py-4 select-none">
+                <span className="text-[9px] text-zinc-500 tracking-wider font-sans mb-1 uppercase">Bản xem trước chữ ký điện tử</span>
                 <span 
-                  className="text-3xl font-medium text-slate-800 py-2 inline-block italic min-h-[44px]"
+                  className="text-3xl font-medium text-white py-2 inline-block italic min-h-[44px]"
                   style={{ fontFamily: "'Dancing Script', 'Brush Script MT', cursive, sans-serif" }}
                 >
                   {typedName || 'Chưa nhập tên'}
@@ -399,32 +401,32 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
           )}
 
           {activeTab === 'saved' && (
-            <div className="pt-1.5 max-h-36 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
+            <div className="pt-1 max-h-36 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
               {savedSignatures.map((sig) => (
                 <div
                   key={sig.id}
                   onClick={() => setSelectedSavedId(sig.id)}
-                  className={`border rounded-xl p-2 flex items-center justify-between cursor-pointer transition-all ${
+                  className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all ${
                     selectedSavedId === sig.id
-                      ? 'border-[#8c7b50] bg-[#8c7b50]/5 shadow-sm'
-                      : 'border-zinc-200 hover:border-zinc-300'
+                      ? 'border-[#c29b57] bg-[#c29b57]/5 shadow-sm'
+                      : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/40'
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center border border-zinc-300 shrink-0">
+                    <div className="w-4 h-4 rounded-full flex items-center justify-center border border-zinc-700 shrink-0">
                       {selectedSavedId === sig.id && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#8c7b50]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#c29b57]" />
                       )}
                     </div>
                     <span className="text-zinc-500 text-[10px]">Lưu ngày: {sig.date}</span>
                   </div>
 
-                  <div className="h-10 max-w-[120px] flex items-center justify-center pr-2">
+                  <div className="h-10 max-w-[120px] flex items-center justify-center pr-2 bg-white rounded border border-zinc-300 p-0.5">
                     {sig.type === 'draw' ? (
                       <img src={sig.content} alt="Chữ ký lưu" className="max-h-9 object-contain" />
                     ) : (
                       <span 
-                        className="text-md italic font-semibold text-slate-800 truncate"
+                        className="text-md italic font-semibold text-zinc-900 truncate"
                         style={{ fontFamily: "'Dancing Script', 'Brush Script MT', cursive, sans-serif" }}
                       >
                         {sig.content}
@@ -440,22 +442,25 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
       </div>
 
       {/* Action Buttons footer */}
-      <div className="flex gap-3 pt-5 px-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+      <div 
+        className="fixed bottom-0 left-0 right-0 p-4 bg-[#0f0f0f]/95 backdrop-blur-md border-t border-zinc-800/60 z-40 max-w-md mx-auto shadow-[0_-4px_20px_rgba(0,0,0,0.5)] shrink-0 flex gap-3" 
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+      >
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 py-3.5 border border-zinc-300 bg-white rounded-xl text-zinc-700 font-semibold hover:bg-zinc-50 transition-colors cursor-pointer text-xs uppercase tracking-wider"
+          className="flex-1 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-semibold hover:bg-zinc-850 hover:text-white transition-all cursor-pointer text-xs uppercase tracking-wider"
         >
-          Trở Về thanh toán
+          Quay lại
         </button>
         <button
           type="button"
           onClick={handleSignAction}
           disabled={sealStatus !== 'applied'}
-          className={`flex-1 py-3.5 bg-[#8c7b50] hover:bg-[#7a6b45] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow transition-all text-xs uppercase tracking-wider ${sealStatus !== 'applied' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`flex-1 py-3 bg-gradient-to-r from-[#c29b57] to-[#ebd5ad] hover:opacity-95 text-black font-extrabold rounded-xl flex items-center justify-center gap-1.5 shadow transition-all text-xs uppercase tracking-wider ${sealStatus !== 'applied' ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <FileText className="w-4 h-4" />
-          Ký và Xác Nhận đầu tư
+          Ký và Xác Nhận
         </button>
       </div>
     </div>

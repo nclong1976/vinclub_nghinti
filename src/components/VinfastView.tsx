@@ -6,6 +6,7 @@ import { useUser } from './UserContext';
 import InvestmentModal from './InvestmentModal';
 import ContractPreviewModal from './ContractPreviewModal';
 import { Project } from '../types';
+import vinfastIcon from '../assets/images/logo-vinfast-1.png';
 
 interface VinfastViewProps {
   onBack: () => void;
@@ -50,7 +51,12 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
     minInvest: parseFloat(car.minCapital.replace(/\./g, '')),
     desc: `Dòng xe ${car.title} hiện đại.`,
     status: car.status || 'ACTIVE',
-    progress: car.progress !== undefined ? car.progress : 100
+    progress: car.progress !== undefined ? car.progress : (
+      car.title === 'VF 3' ? 72 :
+      car.title === 'VF 7' ? 48 :
+      car.title === 'VF 8' ? 65 :
+      car.title === 'VF 9' ? 83 : 50
+    )
   }));
 
   const selectedCar = vinfastCars.find(c => c.id === activeCarId) || vinfastCars[0];
@@ -67,12 +73,12 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
     title: `Ủy Thác: ${selectedCar.title}`,
     imageUrl: selectedCar.image,
     interestRate: selectedCar.dailyYield,
-    duration: '365 ngày',
+    duration: '2 ngày',
     minAmount: formatCurrency(selectedCar.minInvest),
     scale: '150.000+ Tỷ VNĐ',
     progress: selectedCar.progress,
     category: 'VINFAST',
-    durationDays: 365,
+    durationDays: 2,
     minInvestAmount: selectedCar.minInvest,
     interestRateValue: selectedCar.dailyYieldValue,
     status: selectedCar.status
@@ -90,7 +96,7 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
         <div className="w-6"></div>
       </div>
 
-      <div className="flex flex-col animate-fade-in bg-zinc-950 min-h-screen text-white">
+      <div className="flex flex-col animate-fade-in bg-zinc-950 text-white flex-1 pb-20">
         
         {/* Showcase Area */}
         <section className="relative px-4 pt-6 pb-2">
@@ -100,9 +106,9 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
           <div className="relative z-10 flex flex-col items-center">
             <div className="w-full flex justify-between items-start mb-2">
               <img 
-                src="https://vinfastauto.com/themes/porto/img/homepage-v2/logo.svg" 
+                src={vinfastIcon} 
                 alt="VinFast Logo" 
-                className="h-8 opacity-80"
+                className="h-10 object-contain opacity-90"
                 referrerPolicy="no-referrer"
               />
               <div className="text-right">

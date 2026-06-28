@@ -4,6 +4,7 @@ import { motion, useScroll, useSpring } from 'motion/react';
 import { useRef, useContext } from 'react';
 import { UserContext } from './UserContext';
 import viettelIdcImage from '../assets/images/regenerated_image_1782460662494.jpg';
+import vinfastIcon from '../assets/images/logo-vinfast-1.png';
 
 export default function NewsDetailView({ onBack, newsId }: { onBack: () => void, newsId: string | null }) {
   const articles: Record<string, any> = {
@@ -289,7 +290,7 @@ Sự kiện bàn giao dự án lần này là minh chứng rõ nét cho thấy: 
           <div className="flex items-center justify-between border-b border-gray-100 pb-5 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
-                <img src="https://vinfastauto.com/themes/porto/img/logo-vinfast.svg" alt="VinFast" className="w-full h-full object-contain p-2" />
+                <img src={vinfastIcon} alt="VinFast" className="w-full h-full object-contain p-1" />
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-900">{article.author}</p>

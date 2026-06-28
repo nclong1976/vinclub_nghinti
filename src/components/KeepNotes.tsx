@@ -284,7 +284,7 @@ export default function KeepNotes() {
   const otherNotes = filteredNotes.filter(n => !n.isPinned);
 
   return (
-    <div className="flex-1 bg-[#09090b] text-zinc-200 min-h-screen pb-12">
+    <div className="flex-1 bg-[#09090b] text-zinc-200 h-full overflow-y-auto pb-12">
       {/* Toast */}
       <AnimatePresence>
         {toast && (

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection } from 'firebase/firestore';
+
+import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection, query, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Stock, PortfolioItem, Order, Project, AuditLogEntry } from '../types';
+import { Stock, PortfolioItem, Order, Project, AuditLogEntry, CasinoGame } from '../types';
 
 export type Transaction = {
   id: string;
@@ -135,29 +136,29 @@ type UserContextType = {
 
 export const UserContext = createContext<UserContextType>({
   displayName: 'ADMINSG23L',
-  setDisplayName: () => {},
+  setDisplayName: () => { },
   avatarImage: null,
-  setAvatarImage: () => {},
+  setAvatarImage: () => { },
   phoneNumber: '',
-  setPhoneNumber: () => {},
+  setPhoneNumber: () => { },
   birthYear: '',
-  setBirthYear: () => {},
+  setBirthYear: () => { },
   cccd: '',
-  setCccd: () => {},
+  setCccd: () => { },
   address: '',
-  setAddress: () => {},
+  setAddress: () => { },
   balance: 0,
-  setBalance: () => {},
+  setBalance: () => { },
   bankInfo: null,
-  setBankInfo: () => {},
+  setBankInfo: () => { },
   transactions: [],
-  addTransaction: () => {},
+  addTransaction: () => { },
   profits: [],
-  addProfit: () => {},
+  addProfit: () => { },
   bonuses: [],
-  addBonus: () => {},
+  addBonus: () => { },
   depositsList: [],
-  addDepositRecord: () => {},
+  addDepositRecord: () => { },
   passwordChangeLog: [],
   changePassword: () => false,
   withdrawalPasswordChangeLog: [],
@@ -166,46 +167,46 @@ export const UserContext = createContext<UserContextType>({
   userId: null,
   login: async () => ({ success: false, message: 'Not implemented' }),
   register: async () => ({ success: false, message: 'Not implemented' }),
-  logout: () => {},
+  logout: () => { },
   systemInstructions: '',
-  updateSystemInstructions: async () => {},
+  updateSystemInstructions: async () => { },
   getAdjustedStocks: (stocks: Stock[]) => stocks,
   forceActiveStockRules: false,
-  setForceActiveStockRules: () => {},
+  setForceActiveStockRules: () => { },
   interestRate: 0.006,
   stockTriggers: [],
-  updateSystemDirectives: async () => {},
+  updateSystemDirectives: async () => { },
   isIdentityVerified: false,
-  setIsIdentityVerified: () => {},
-  updateUserField: async () => {},
+  setIsIdentityVerified: () => { },
+  updateUserField: async () => { },
   role: 'user',
   cmsNews: [],
   cmsBanners: [],
   cmsVinfast: [],
   articlesList: [],
-  updateCmsNews: async () => {},
-  updateCmsBanners: async () => {},
-  updateCmsVinfast: async () => {},
+  updateCmsNews: async () => { },
+  updateCmsBanners: async () => { },
+  updateCmsVinfast: async () => { },
   adminProjects: [],
   auditLog: [],
-  updateProjectStatus: async () => {},
-  updateProjectDetails: async () => {},
-  updateAllProjectsStatus: async () => {},
+  updateProjectStatus: async () => { },
+  updateProjectDetails: async () => { },
+  updateAllProjectsStatus: async () => { },
   standardProjects: [],
-  updateStandardProjectDetails: async () => {},
-  updateAllStandardProjectsStatus: async () => {},
+  updateStandardProjectDetails: async () => { },
+  updateAllStandardProjectsStatus: async () => { },
   standardStocks: [],
   casinoGames: [],
-  updateStockDetails: async () => {},
-  updateCasinoGameDetails: async () => {},
-  updateAllStocksStatus: async () => {},
-  updateAllCasinoGamesStatus: async () => {},
-  updateAllVinfastStatus: async () => {},
+  updateStockDetails: async () => { },
+  updateCasinoGameDetails: async () => { },
+  updateAllStocksStatus: async () => { },
+  updateAllCasinoGamesStatus: async () => { },
+  updateAllVinfastStatus: async () => { },
   portfolio: [],
   orderHistory: [],
   placeOrder: async () => ({ success: false, message: 'Not implemented' }),
   keepNotes: [],
-  updateKeepNotes: async () => {},
+  updateKeepNotes: async () => { },
 });
 
 // ==================== SYSTEM INSTRUCTION PARSERS ====================
@@ -233,7 +234,7 @@ export const parseStockInstructions = (text: string): StockInstruction[] => {
   if (!text) return [];
   const lines = text.split('\n');
   const rules: StockInstruction[] = [];
-  
+
   // Pattern to match "Chứng khoán VINHOMES 15h00 ngày 25/06/2026 tăng 2,4% trong thời gian 15 phút"
   const regex = /chứng\s*khoán\s+([a-z0-9\s]+?)\s+(\d{1,2}h\d{2}|\d{1,2}:\d{2})\s+ngày\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(tăng|giảm)\s+(\d+(?:[.,]\d+)?)\s*%\s+trong\s+thời\s+gian\s+(\d+)\s+phút/i;
 
@@ -246,7 +247,7 @@ export const parseStockInstructions = (text: string): StockInstruction[] => {
       const changeType = match[4].toLowerCase() as 'tăng' | 'giảm';
       const percent = parseFloat(match[5].replace(',', '.'));
       const durationMin = parseInt(match[6], 10);
-      
+
       rules.push({
         stockNameOrSymbol,
         timeStr,
@@ -265,12 +266,12 @@ export const parseInstructionDate = (dateStr: string, timeStr: string): Date => 
   const day = parseInt(dateParts[0], 10);
   const month = parseInt(dateParts[1], 10) - 1;
   const year = parseInt(dateParts[2], 10);
-  
+
   const timeClean = timeStr.replace('h', ':');
   const timeParts = timeClean.split(':');
   const hours = parseInt(timeParts[0], 10);
   const minutes = parseInt(timeParts[1], 10);
-  
+
   return new Date(year, month, day, hours, minutes, 0, 0);
 };
 
@@ -278,10 +279,10 @@ export const getInterestDatesDue = (lastPaidStr: string, now: Date): Date[] => {
   const dates: Date[] = [];
   const start = new Date(lastPaidStr);
   start.setHours(12, 0, 0, 0); // avoid timezone issues
-  
+
   const current = new Date(start);
   current.setDate(current.getDate() + 1);
-  
+
   let loopCount = 0;
   while (current <= now && loopCount < 100) {
     loopCount++;
@@ -313,8 +314,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [isIdentityVerifiedState, setIsIdentityVerifiedState] = useState(false);
   const [kycStatusState, setKycStatusState] = useState<'pending' | 'verified' | 'rejected' | undefined>(undefined);
   const [kycRejectReasonState, setKycRejectReasonState] = useState<string | undefined>(undefined);
+  const [hasReceivedWelcomeVoucher, setHasReceivedWelcomeVoucherState] = useState<boolean>(false);
   const [role, setRoleState] = useState<'user' | 'admin' | 'super_admin' | 'finance_admin' | 'support_admin'>('user');
-  
+
   // System Instructions State
   const [systemInstructions, setSystemInstructionsState] = useState<string>('');
   const [lastInterestPaidDate, setLastInterestPaidDate] = useState<string | null>(null);
@@ -325,10 +327,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [cmsBanners, setCmsBannersState] = useState<string[]>([]);
   const [articlesList, setArticlesList] = useState<any[]>([]);
   const [cmsVinfast, setCmsVinfastState] = useState<any[]>(() => [
-    { title: 'VF 3', kw: '32', profit: '0.8', minCapital: '15.000.000' },
-    { title: 'VF 7', kw: '260', profit: '1.2', minCapital: '50.000.000' },
-    { title: 'VF 8', kw: '300', profit: '1.5', minCapital: '100.000.000' },
-    { title: 'VF 9', kw: '300', profit: '1.8', minCapital: '200.000.000' },
+    { title: 'VF 3', kw: '32', profit: '0.8', minCapital: '15.000.000', progress: 72 },
+    { title: 'VF 7', kw: '260', profit: '1.2', minCapital: '50.000.000', progress: 48 },
+    { title: 'VF 8', kw: '300', profit: '1.5', minCapital: '100.000.000', progress: 65 },
+    { title: 'VF 9', kw: '300', profit: '1.8', minCapital: '200.000.000', progress: 83 },
   ]);
   const [portfolio, setPortfolioState] = useState<PortfolioItem[]>([]);
   const [standardProjects, setStandardProjects] = useState<Project[]>([]);
@@ -339,88 +341,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [adminProjects, setAdminProjectsState] = useState<Project[]>(() => [
     {
       id: '1',
-      title: 'Vinpearl Harbour Nha Trang',
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBs0Ws0FoM0Koq9Z7wZHIw_aGBFvrr7MaTjqqbtfEfaNqrDge_XgDHRSN6PWfQX8bdWRjxdDKQleYOwyZa5ibrF4NJ94BKG3-XJMtetJ6YaQr_M0OgWWcmF_L_RjvBEE8pNkYq_bZ63EHu7i3fPvcpINwnEv3S9EDHDyKXEMfLNycvf_1SmBsHwdIAXZGl3CojGzobPiBDJsARvkb1M8BxttP6NZvOp54fnqGdKzBQR8E7jjeBBmtbpuzjCjyrPB9ZpcjLm2Y8mPaU',
-      interestRate: '2.6%',
-      duration: '5 ngày',
-      minAmount: '1.2 Tỷ',
-      scale: '35.000 Tỷ VNĐ',
-      progress: 65,
+      title: 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)',
+      imageUrl: 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg',
+      interestRate: '1.5%',
+      duration: '6 ngày',
+      minAmount: '5.0 Tỷ',
+      scale: '40 tỷ USD',
+      progress: 96,
       category: 'Vinpearl',
-      durationDays: 5,
-      minInvestAmount: 1200000000,
-      interestRateValue: 0.026,
+      durationDays: 6,
+      minInvestAmount: 5000000000,
+      interestRateValue: 0.015,
       status: 'ACTIVE',
-      targetCapital: 35000000000000,
-      raisedCapital: 22750000000000
+      targetCapital: 40000000000000,
+      raisedCapital: 38400000000000
     },
     {
       id: '2',
-      title: 'Vinhomes Royal Island',
-      imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80',
-      interestRate: '3.2%',
-      duration: '10 ngày',
-      minAmount: '2.5 Tỷ',
-      scale: '55.000 Tỷ VNĐ',
-      progress: 42,
-      category: 'Vinhomes',
-      durationDays: 10,
-      minInvestAmount: 2500000000,
-      interestRateValue: 0.032,
-      status: 'ACTIVE',
-      targetCapital: 55000000000000,
-      raisedCapital: 23100000000000
-    },
-    {
-      id: '3',
-      title: 'VinFast Global Giga-Factory',
-      imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
-      interestRate: '4.5%',
-      duration: '15 ngày',
-      minAmount: '5.0 Tỷ',
-      scale: '120.000 Tỷ VNĐ',
-      progress: 88,
-      category: 'VinFast',
-      durationDays: 15,
-      minInvestAmount: 5000000000,
-      interestRateValue: 0.045,
-      status: 'ACTIVE',
-      targetCapital: 120000000000000,
-      raisedCapital: 105600000000000
-    },
-    {
-      id: '4',
-      title: 'Vinpearl Eco-Retreat',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-      interestRate: '2.8%',
+      title: 'Đại đô thị phức hợp Hạ Long Xanh (Quảng Ninh)',
+      imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg',
+      interestRate: '1.8%',
       duration: '7 ngày',
       minAmount: '1.5 Tỷ',
-      scale: '38.000 Tỷ VNĐ',
-      progress: 25,
-      category: 'Vinpearl',
+      scale: '18 tỷ USD',
+      progress: 98,
+      category: 'Vinhomes',
       durationDays: 7,
       minInvestAmount: 1500000000,
-      interestRateValue: 0.028,
+      interestRateValue: 0.018,
       status: 'ACTIVE',
-      targetCapital: 38000000000000,
-      raisedCapital: 950000000000
-    },
-    {
-      id: '5',
-      title: 'VinFast Smart City Hub',
-      imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=800&q=80',
-      interestRate: '3.5%',
-      duration: '12 ngày',
-      minAmount: '3.0 Tỷ',
-      scale: '85.000 Tỷ VNĐ',
-      progress: 12,
-      category: 'VinFast',
-      durationDays: 12,
-      minInvestAmount: 3000000000,
-      interestRateValue: 0.035,
-      status: 'ACTIVE',
-      targetCapital: 85000000000000,
-      raisedCapital: 10200000000000
+      targetCapital: 18000000000000,
+      raisedCapital: 17640000000000
     }
   ]);
   const [auditLog, setAuditLogState] = useState<AuditLogEntry[]>([]);
@@ -606,6 +557,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         if (data.kycStatus !== undefined) setKycStatusState(data.kycStatus);
         if (data.kycRejectReason !== undefined) setKycRejectReasonState(data.kycRejectReason);
+        if (data.hasReceivedWelcomeVoucher !== undefined) setHasReceivedWelcomeVoucherState(data.hasReceivedWelcomeVoucher);
         if (data.portfolio !== undefined) setPortfolioState(data.portfolio);
         if (data.orderHistory !== undefined) setOrderHistoryState(data.orderHistory);
         if (data.keepNotes !== undefined) setKeepNotesState(data.keepNotes);
@@ -631,6 +583,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           passwordChangeLog: [],
           withdrawalPasswordChangeLog: [],
           isIdentityVerified: false,
+          hasReceivedWelcomeVoucher: false,
           keepNotes: []
         };
         setDoc(docRef, initialProfile).catch(err => {
@@ -725,11 +678,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const defaultDirectives = {
           interest_rate: 0.006,
           stock_triggers: [
-            { 
-              symbol: "VINHOMES", 
-              target_time: "2026-06-25T15:00:00", 
-              rate: 0.024, 
-              duration_mins: 15 
+            {
+              symbol: "VINHOMES",
+              target_time: "2026-06-25T15:00:00",
+              rate: 0.024,
+              duration_mins: 15
             }
           ]
         };
@@ -749,11 +702,74 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // System dynamic interest checker and compounder
   useEffect(() => {
     if (!isLoggedIn || !userId) return;
-    
-    // Prioritize interestRate from global_rules, fallback to system instructions text parsing or default 0.6%
-    const rate = interestRate > 0 ? interestRate : (parseInterestRate(systemInstructions) || 0.006);
-    if (rate <= 0) return;
-    if (balance <= 0) return;
+
+    const hasActiveInvestments = (txs: Transaction[]) => {
+      const now = new Date();
+      return txs.some(t => {
+        if (t.type !== 'invest' || t.status !== 'Thành công') return false;
+        
+        let durationDays = 15;
+        if (t.contractProjectTitle?.includes('VF')) {
+          durationDays = 2;
+        } else if (t.contractProjectTitle?.includes('Harbour')) {
+          durationDays = 5;
+        } else if (t.contractProjectTitle?.includes('Island')) {
+          durationDays = 10;
+        } else if (t.contractProjectTitle?.includes('Giga-Factory')) {
+          durationDays = 15;
+        } else if (t.contractProjectTitle?.includes('Eco-Retreat')) {
+          durationDays = 7;
+        } else if (t.contractProjectTitle?.includes('Smart City')) {
+          durationDays = 12;
+        }
+        
+        const txTime = t.timestamp ? new Date(t.timestamp) : new Date();
+        const diffTime = now.getTime() - txTime.getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        return diffDays < durationDays;
+      });
+    };
+
+    const getActiveInvestmentsTotal = (txs: Transaction[]) => {
+      const now = new Date();
+      return txs
+        .filter(t => {
+          if (t.type !== 'invest' || t.status !== 'Thành công') return false;
+          let durationDays = 15;
+          if (t.contractProjectTitle?.includes('VF')) {
+            durationDays = 2;
+          } else if (t.contractProjectTitle?.includes('Harbour')) {
+            durationDays = 5;
+          } else if (t.contractProjectTitle?.includes('Island')) {
+            durationDays = 10;
+          } else if (t.contractProjectTitle?.includes('Giga-Factory')) {
+            durationDays = 15;
+          } else if (t.contractProjectTitle?.includes('Eco-Retreat')) {
+            durationDays = 7;
+          } else if (t.contractProjectTitle?.includes('Smart City')) {
+            durationDays = 12;
+          }
+          const txTime = t.timestamp ? new Date(t.timestamp) : new Date();
+          const diffTime = now.getTime() - txTime.getTime();
+          const diffDays = diffTime / (1000 * 60 * 60 * 24);
+          return diffDays < durationDays;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+    };
+
+    // Calculate totalDeposit to determine tier
+    const totalDeposit = transactions
+      .filter(t => t.type === 'deposit' && t.status === 'Thành công')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    let userTier = 'Member';
+    if (totalDeposit >= 10000000000) {
+      userTier = 'VVIP';
+    } else if (totalDeposit >= 5000000000) {
+      userTier = 'VIP';
+    } else if (totalDeposit >= 1000000000) {
+      userTier = 'Gold';
+    }
 
     const checkAndApplyInterest = async () => {
       const activeId = userId;
@@ -765,7 +781,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         lastPaidStr = yesterday.toISOString().split('T')[0];
-        
+
         try {
           await setDoc(doc(db, 'users', activeId), { lastInterestPaidDate: lastPaidStr }, { merge: true });
         } catch (e) {
@@ -784,28 +800,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       datesDue.sort((a, b) => a.getTime() - b.getTime());
 
       for (const dueDate of datesDue) {
-        const interestAmount = Math.round(tempBalance * rate);
+        // Determine rate & base calculation amount dynamically in loop
+        let currentRate = 0.006;
+        let currentBase = tempBalance;
+
+        if (userTier === 'Gold' || userTier === 'VIP' || userTier === 'VVIP') {
+          currentRate = 0.01;
+          const activeInvestmentsTotal = getActiveInvestmentsTotal(transactions);
+          currentBase = tempBalance + activeInvestmentsTotal;
+        } else {
+          if (hasActiveInvestments(transactions)) {
+            continue; // Member doesn't get interest on balance if there is an active investment
+          }
+        }
+
+        const interestAmount = Math.round(currentBase * currentRate);
         if (interestAmount <= 0) continue;
-        
+
         const balanceBefore = tempBalance;
         tempBalance += interestAmount;
         const balanceAfter = tempBalance;
-        
+
         const dateStr = dueDate.toISOString();
-        
+
         newTxs.push({
           id: `interest-${dueDate.getTime()}-${Math.random()}`,
           type: 'profit',
           amount: interestAmount,
           date: dateStr,
           status: 'Thành công',
-          contractProjectTitle: `Lãi suất tự động hệ thống ${(rate * 100).toFixed(1)}%`
+          contractProjectTitle: `Lãi suất tự động hệ thống ${(currentRate * 100).toFixed(1)}%`
         });
 
         newInterestHistory.push({
           id: `int-hist-${dueDate.getTime()}-${Math.random()}`,
           amount: interestAmount,
-          rate: rate,
+          rate: currentRate,
           balanceBefore,
           balanceAfter,
           date: dateStr
@@ -819,14 +849,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           const snap = await getDoc(docRef);
           const currentTxs = snap.exists() ? (snap.data().transactions || []) : [];
           const currentHistory = snap.exists() ? (snap.data().interest_history || []) : [];
-          
+
           await setDoc(docRef, {
             balance: tempBalance,
             transactions: [...currentTxs, ...newTxs],
             interest_history: [...currentHistory, ...newInterestHistory],
             lastInterestPaidDate: nextLastPaidStr
           }, { merge: true });
-          
+
           console.log(`Successfully compounded ${newTxs.length} daily system interest payments.`);
         } catch (e) {
           console.error("Error committing daily interest payments:", e);
@@ -931,8 +961,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const activeId = userId || 'profile';
     setIsIdentityVerifiedState(val);
     localStorage.setItem(`user-is-verified-${activeId}`, String(val));
+    
+    let updates: any = { isIdentityVerified: val };
+    if (val && !hasReceivedWelcomeVoucher) {
+      setHasReceivedWelcomeVoucherState(true);
+      updates.hasReceivedWelcomeVoucher = true;
+      updates.balance = balance + 50000;
+      setBalanceState(balance + 50000);
+
+      const newTx = {
+        id: 'welcome-voucher-' + Date.now(),
+        type: 'bonus',
+        amount: 50000,
+        status: 'Thành công',
+        note: 'Nhận Welcome Voucher sau khi xác thực tài khoản thành công',
+        timestamp: new Date().toISOString()
+      };
+      
+      const updatedTxs = [newTx, ...transactions];
+      setTransactionsState(updatedTxs);
+      updates.transactions = updatedTxs;
+    }
+
     try {
-      await setDoc(doc(db, 'users', activeId), { isIdentityVerified: val }, { merge: true });
+      await setDoc(doc(db, 'users', activeId), updates, { merge: true });
     } catch (e) {
       console.error("Error setting isIdentityVerified in Firestore:", e);
     }
@@ -947,17 +999,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       action: `Cập nhật dự án ${updatedProjects.find(p => p.id === projectId)?.title} sang ${newStatus}`
     };
     const updatedLog = [newLog, ...auditLog];
-    
+
     setAdminProjectsState(updatedProjects);
     setAuditLogState(updatedLog);
 
     try {
-        await setDoc(doc(db, 'system', 'project_control'), {
-            projects: updatedProjects,
-            auditLog: updatedLog
-        }, { merge: true });
+      await setDoc(doc(db, 'system', 'project_control'), {
+        projects: updatedProjects,
+        auditLog: updatedLog
+      }, { merge: true });
     } catch (e) {
-        console.error("Error updating project status:", e);
+      console.error("Error updating project status:", e);
     }
   };
 
@@ -965,7 +1017,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const updatedProjects = adminProjects.map(p => {
       if (p.id === projectId) {
         const merged = { ...p, ...updates };
-        
+
         // Auto convert fields if value changed
         if (updates.interestRateValue !== undefined) {
           merged.interestRate = `${(updates.interestRateValue * 100).toFixed(1)}%`;
@@ -1044,10 +1096,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!snapshot.empty) {
         const projectsData = snapshot.docs.map(doc => {
           const data = doc.data();
-          return { 
-            id: doc.id, 
+          return {
+            id: doc.id,
             status: data.status || 'ACTIVE',
-            ...data 
+            ...data
           } as Project;
         });
         projectsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
@@ -1066,9 +1118,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const updateStandardProjectDetails = async (projectId: string, updates: Partial<Project>) => {
     const projectToUpdate = standardProjects.find(p => p.id === projectId);
     if (!projectToUpdate) return;
-    
+
     const merged = { ...projectToUpdate, ...updates } as any;
-    
+
     // Auto convert formatting strings
     if (updates.interestRateValue !== undefined) {
       merged.interestRate = `${(updates.interestRateValue * 100).toFixed(2)} %`;
@@ -1086,28 +1138,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (updates.durationDays !== undefined) {
       merged.duration = `${updates.durationDays * 1440} phút`;
     }
-    
+
     const docRef = doc(db, "projects", projectId);
     try {
       await setDoc(docRef, merged, { merge: true });
-      
+
       const changeLogs: string[] = [];
       if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
       if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(2)}%`);
       if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
       if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
       if (updates.progress !== undefined) changeLogs.push(`tiến độ -> ${updates.progress}%`);
-      
+
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
         time: new Date().toLocaleString('vi-VN'),
         adminName: displayName,
         action: `Sửa dự án Vinhomes "${projectToUpdate.title}": ${changeLogs.join(', ')}`
       };
-      
+
       const updatedLog = [newLog, ...auditLog];
       setAuditLogState(updatedLog);
-      
+
       await setDoc(doc(db, 'system', 'project_control'), {
         auditLog: updatedLog
       }, { merge: true });
@@ -1124,14 +1176,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         batch.update(doc(db, "projects", p.id), { status: newStatus });
       });
       await batch.commit();
-      
+
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
         time: new Date().toLocaleString('vi-VN'),
         adminName: displayName,
         action: `Bật/Tắt đồng loạt tất cả dự án Vinhomes sang: ${newStatus}`
       };
-      
+
       const updatedLog = [newLog, ...auditLog];
       setAuditLogState(updatedLog);
       await setDoc(doc(db, 'system', 'project_control'), {
@@ -1149,10 +1201,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!snapshot.empty) {
         const stocksData = snapshot.docs.map(doc => {
           const data = doc.data();
-          return { 
-            symbol: doc.id, 
+          return {
+            symbol: doc.id,
             status: data.status || 'ACTIVE',
-            ...data 
+            ...data
           } as Stock;
         });
         setStandardStocks(stocksData);
@@ -1174,10 +1226,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!snapshot.empty) {
         const gamesData = snapshot.docs.map(doc => {
           const data = doc.data();
-          return { 
-            id: doc.id, 
+          return {
+            id: doc.id,
             status: data.status || 'ACTIVE',
-            ...data 
+            ...data
           } as CasinoGame;
         });
         gamesData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
@@ -1197,7 +1249,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const docRef = doc(db, "stocks", symbol);
     try {
       await setDoc(docRef, updates, { merge: true });
-      
+
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
         time: new Date().toLocaleString('vi-VN'),
@@ -1217,7 +1269,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const docRef = doc(db, "casinoGames", id);
     try {
       await setDoc(docRef, updates, { merge: true });
-      
+
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
         time: new Date().toLocaleString('vi-VN'),
@@ -1240,7 +1292,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         batch.update(doc(db, "stocks", s.symbol), { status: newStatus });
       });
       await batch.commit();
-      
+
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
         time: new Date().toLocaleString('vi-VN'),
@@ -1262,7 +1314,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         batch.update(doc(db, "casinoGames", g.id), { status: newStatus });
       });
       await batch.commit();
-      
+
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
         time: new Date().toLocaleString('vi-VN'),
@@ -1304,95 +1356,44 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const freshProjects: Project[] = [
         {
           id: '1',
-          title: 'Vinpearl Harbour Nha Trang',
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBs0Ws0FoM0Koq9Z7wZHIw_aGBFvrr7MaTjqqbtfEfaNqrDge_XgDHRSN6PWfQX8bdWRjxdDKQleYOwyZa5ibrF4NJ94BKG3-XJMtetJ6YaQr_M0OgWWcmF_L_RjvBEE8pNkYq_bZ63EHu7i3fPvcpINwnEv3S9EDHDyKXEMfLNycvf_1SmBsHwdIAXZGl3CojGzobPiBDJsARvkb1M8BxttP6NZvOp54fnqGdKzBQR8E7jjeBBmtbpuzjCjyrPB9ZpcjLm2Y8mPaU',
-          interestRate: '2.6%',
-          duration: '5 ngày',
-          minAmount: '1.2 Tỷ',
-          scale: '35.000 Tỷ VNĐ',
-          progress: 65,
+          title: 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)',
+          imageUrl: 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg',
+          interestRate: '1.5%',
+          duration: '6 ngày',
+          minAmount: '5.0 Tỷ',
+          scale: '40 tỷ USD',
+          progress: 96,
           category: 'Vinpearl',
-          durationDays: 5,
-          minInvestAmount: 1200000000,
-          interestRateValue: 0.026,
+          durationDays: 6,
+          minInvestAmount: 5000000000,
+          interestRateValue: 0.015,
           status: 'ACTIVE',
-          targetCapital: 35000000000000,
-          raisedCapital: 22750000000000
+          targetCapital: 40000000000000,
+          raisedCapital: 38400000000000
         },
         {
           id: '2',
-          title: 'Vinhomes Royal Island',
-          imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80',
-          interestRate: '3.2%',
-          duration: '10 ngày',
-          minAmount: '2.5 Tỷ',
-          scale: '55.000 Tỷ VNĐ',
-          progress: 42,
-          category: 'Vinhomes',
-          durationDays: 10,
-          minInvestAmount: 2500000000,
-          interestRateValue: 0.032,
-          status: 'ACTIVE',
-          targetCapital: 55000000000000,
-          raisedCapital: 23100000000000
-        },
-        {
-          id: '3',
-          title: 'VinFast Global Giga-Factory',
-          imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
-          interestRate: '4.5%',
-          duration: '15 ngày',
-          minAmount: '5.0 Tỷ',
-          scale: '120.000 Tỷ VNĐ',
-          progress: 88,
-          category: 'VinFast',
-          durationDays: 15,
-          minInvestAmount: 5000000000,
-          interestRateValue: 0.045,
-          status: 'ACTIVE',
-          targetCapital: 120000000000000,
-          raisedCapital: 105600000000000
-        },
-        {
-          id: '4',
-          title: 'Vinpearl Eco-Retreat',
-          imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-          interestRate: '2.8%',
+          title: 'Đại đô thị phức hợp Hạ Long Xanh (Quảng Ninh)',
+          imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg',
+          interestRate: '1.8%',
           duration: '7 ngày',
           minAmount: '1.5 Tỷ',
-          scale: '38.000 Tỷ VNĐ',
-          progress: 25,
-          category: 'Vinpearl',
+          scale: '18 tỷ USD',
+          progress: 98,
+          category: 'Vinhomes',
           durationDays: 7,
           minInvestAmount: 1500000000,
-          interestRateValue: 0.028,
+          interestRateValue: 0.018,
           status: 'ACTIVE',
-          targetCapital: 38000000000000,
-          raisedCapital: 950000000000
-        },
-        {
-          id: '5',
-          title: 'VinFast Smart City Hub',
-          imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=800&q=80',
-          interestRate: '3.5%',
-          duration: '12 ngày',
-          minAmount: '3.0 Tỷ',
-          scale: '85.000 Tỷ VNĐ',
-          progress: 12,
-          category: 'VinFast',
-          durationDays: 12,
-          minInvestAmount: 3000000000,
-          interestRateValue: 0.035,
-          status: 'ACTIVE',
-          targetCapital: 85000000000000,
-          raisedCapital: 10200000000000
+          targetCapital: 18000000000000,
+          raisedCapital: 17640000000000
         }
       ];
 
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.projects) {
-          if (data.projects.length !== 5 || data.projects[0]?.title !== 'Vinpearl Harbour Nha Trang') {
+          if (data.projects.length !== 2 || data.projects[0]?.title !== 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)' || data.projects[0]?.imageUrl !== 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg') {
             setDoc(projectDocRef, { projects: freshProjects }, { merge: true });
             setAdminProjectsState(freshProjects);
           } else {
@@ -1452,7 +1453,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       status: 'Khớp lệnh',
       date: new Date().toLocaleString('vi-VN'),
     };
-    
+
     const newOrderHistory = [newOrder, ...orderHistory];
 
     setBalanceState(newBalance);
@@ -1530,7 +1531,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       description,
       date: new Date().toLocaleString('vi-VN'),
     };
-    
+
     let updatedProfits: ProfitRecord[] = [];
     setProfitsState((prev) => {
       updatedProfits = [newProfit, ...prev];
@@ -1541,7 +1542,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setBalanceState((prev) => {
       const nextBalance = prev + amount;
       localStorage.setItem(`user-balance-${activeId}`, String(nextBalance));
-      
+
       const newTx: Transaction = {
         type: 'profit',
         amount,
@@ -1549,18 +1550,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         id: 'TX' + Math.floor(Math.random() * 900000 + 100000),
         date: new Date().toLocaleString('vi-VN'),
       };
-      
+
       setTransactionsState((prevTxs) => {
         const updatedTxs = [newTx, ...prevTxs];
         localStorage.setItem(`user-transactions-${activeId}`, JSON.stringify(updatedTxs));
-        
+
         // Write combined changes to Firestore cleanly to prevent write races
         setDoc(doc(db, 'users', activeId), {
           profits: updatedProfits,
           balance: nextBalance,
           transactions: updatedTxs
         }, { merge: true }).catch(console.error);
-        
+
         return updatedTxs;
       });
 
@@ -1576,7 +1577,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       description,
       date: new Date().toLocaleString('vi-VN'),
     };
-    
+
     let updatedBonuses: BonusRecord[] = [];
     setBonusesState((prev) => {
       updatedBonuses = [newBonus, ...prev];
@@ -1587,7 +1588,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setBalanceState((prev) => {
       const nextBalance = prev + amount;
       localStorage.setItem(`user-balance-${activeId}`, String(nextBalance));
-      
+
       const newTx: Transaction = {
         type: 'bonus',
         amount,
@@ -1595,18 +1596,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         id: 'TX' + Math.floor(Math.random() * 900000 + 100000),
         date: new Date().toLocaleString('vi-VN'),
       };
-      
+
       setTransactionsState((prevTxs) => {
         const updatedTxs = [newTx, ...prevTxs];
         localStorage.setItem(`user-transactions-${activeId}`, JSON.stringify(updatedTxs));
-        
+
         // Write combined changes to Firestore cleanly
         setDoc(doc(db, 'users', activeId), {
           bonuses: updatedBonuses,
           balance: nextBalance,
           transactions: updatedTxs
         }, { merge: true }).catch(console.error);
-        
+
         return updatedTxs;
       });
 
@@ -1626,7 +1627,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       note: note || '',
       proofImage: proofImage || '',
     };
-    
+
     let updatedDeposits: DepositRecord[] = [];
     setDepositsListState((prev) => {
       updatedDeposits = [newDep, ...prev];
@@ -1647,12 +1648,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setTransactionsState((prevTxs) => {
       const updatedTxs = [newTx, ...prevTxs];
       localStorage.setItem(`user-transactions-${activeId}`, JSON.stringify(updatedTxs));
-      
+
       setDoc(doc(db, 'users', activeId), {
         depositsList: updatedDeposits,
         transactions: updatedTxs
       }, { merge: true }).catch(console.error);
-      
+
       return updatedTxs;
     });
   };
@@ -1662,7 +1663,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (oldP === currentPassword) {
       setCurrentPassword(newP);
       localStorage.setItem(`user-password-${activeId}`, newP);
-      
+
       const newLog = { oldPass: oldP, newPass: newP, date: new Date().toLocaleString('vi-VN') };
       setPasswordChangeLog((prev) => {
         const updated = [newLog, ...prev];
@@ -1682,7 +1683,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (oldP === currentWithdrawalPassword) {
       setCurrentWithdrawalPassword(newP);
       localStorage.setItem(`user-withdrawal-password-${activeId}`, newP);
-      
+
       const newLog = { oldPass: oldP, newPass: newP, date: new Date().toLocaleString('vi-VN') };
       setWithdrawalPasswordChangeLog((prev) => {
         const updated = [newLog, ...prev];
@@ -1873,7 +1874,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           referralCode: referralCode || ''
         };
         await setDoc(docRef, initialProfile);
-        
+
         // Populate local storage values
         localStorage.setItem(`user-display-name-${activeId}`, displayName);
         localStorage.setItem(`user-phone-number-${activeId}`, emailOrPhone);
@@ -2004,7 +2005,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const getAdjustedStocks = (baseStocks: Stock[]): Stock[] => {
     const now = new Date();
-    
+
     // First, map over base stocks and adjust using the structured stockTriggers array
     return baseStocks.map(stock => {
       // Find matching rule from stockTriggers config

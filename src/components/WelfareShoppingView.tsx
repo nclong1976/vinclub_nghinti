@@ -8,7 +8,7 @@ interface WelfareShoppingViewProps {
 
 export default function WelfareShoppingView({ onBack }: WelfareShoppingViewProps) {
   return (
-    <div className="flex-1 bg-[#f7f9fb] text-[#001839] antialiased flex flex-col min-h-screen overflow-y-auto scrollbar-hide pb-28">
+    <div className="flex-1 bg-[#f7f9fb] text-[#001839] antialiased flex flex-col h-full overflow-y-auto scrollbar-hide pb-28">
       {/* TopAppBar */}
       <header className="sticky top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 bg-[#f7f9fb]/90 backdrop-blur-md border-b border-[#e0e3e5]">
         <button onClick={onBack} className="flex items-center justify-center w-10 h-10 -ml-2 rounded-full hover:bg-black/5 transition-colors text-[#001839]">

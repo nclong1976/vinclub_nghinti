@@ -10,7 +10,7 @@ import {
   updateDoc, doc, writeBatch, serverTimestamp 
 } from 'firebase/firestore';
 
-export default function UserCSKH({ onBack, onNavigateToAdmin }: { onBack: () => void, onNavigateToAdmin: () => void }) {
+export default function UserCSKH({ onBack }: { onBack: () => void }) {
   const userCtx = useContext(UserContext);
   
   // Real-time Chat States

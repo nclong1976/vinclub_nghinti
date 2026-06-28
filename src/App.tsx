@@ -6,7 +6,6 @@ import StockList from './components/StockList';
 import StockDetail from './components/StockDetail';
 import CasinoList from './components/CasinoList';
 import Profile from './components/Profile';
-import AdminConsole from './components/AdminConsole';
 import UserCSKH from './components/UserCSKH';
 import VinfastView from './components/VinfastView';
 import WelfareConsultationView from './components/WelfareConsultationView';
@@ -31,7 +30,7 @@ import VinpearlInvestView from './components/VinpearlInvestView';
 import CardRankingView from './components/CardRankingView';
 import AllNewsView from './components/AllNewsView';
 
-export type ViewState = 'home' | 'projects' | 'stockList' | 'stockDetail' | 'casino' | 'profile' | 'admin' | 'cskh' | 'vinfast' | 'welfare_consultation' | 'news_detail' | 'investment_reasons' | 'welfare_resort' | 'welfare_education' | 'welfare_medical' | 'welfare_shopping' | 'welfare_vinhomes' | 'vinpearl_projects' | 'vinpearl_project_detail' | 'vinpearl_invest' | 'all_news' | 'cardRanking';
+export type ViewState = 'home' | 'projects' | 'stockList' | 'stockDetail' | 'casino' | 'profile' | 'cskh' | 'vinfast' | 'welfare_consultation' | 'news_detail' | 'investment_reasons' | 'welfare_resort' | 'welfare_education' | 'welfare_medical' | 'welfare_shopping' | 'welfare_vinhomes' | 'vinpearl_projects' | 'vinpearl_project_detail' | 'vinpearl_invest' | 'all_news' | 'cardRanking';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>('home');
@@ -62,18 +61,7 @@ export default function App() {
     setCurrentView('stockDetail');
   };
 
-  if (currentView === 'admin') {
-    return (
-      <EditableImage
-        imageKey="app-background"
-        defaultSrc=""
-        className="min-h-screen bg-black text-white font-sans selection:bg-[#c29b57] selection:text-black flex flex-col overflow-hidden"
-        isBackground={true}
-      >
-        <AdminConsole onBack={() => setCurrentView('home')} />
-      </EditableImage>
-    );
-  }
+
 
   return (
     <EditableImage
@@ -84,23 +72,7 @@ export default function App() {
       overlayClassName="absolute top-4 left-4 z-[99] w-24 h-24 rounded-2xl bg-[#c29b57]/90 text-black flex flex-col items-center justify-center cursor-pointer hover:bg-[#c29b57] transition-all shadow-2xl border-2 border-[#ebd5ad] backdrop-blur-md hover:scale-105"
     >
       {/* Mobile container constraint */}
-      <div className="max-w-md mx-auto bg-[#0f0f0f]/80 backdrop-blur-sm min-h-screen relative shadow-2xl flex flex-col border-x border-zinc-900 overflow-hidden">
-        
-        {/* Floating Edit Mode Toggle */}
-        <button 
-          onClick={() => setIsEditMode(!isEditMode)}
-          className={`absolute top-4 right-4 z-[100] h-10 px-3 rounded-full flex items-center justify-center gap-2 transition-all shadow-lg border backdrop-blur-md ${isEditMode ? 'bg-[#c29b57] text-black border-[#c29b57]' : 'bg-black/50 text-zinc-400 border-white/10 hover:text-white'}`}
-          title="Chế độ Tùy chỉnh Ảnh"
-        >
-          {isEditMode ? (
-            <>
-              <span className="text-sm font-semibold tracking-wide">TẮT</span>
-              <X className="w-5 h-5" />
-            </>
-          ) : (
-            <Settings2 className="w-5 h-5" />
-          )}
-        </button>
+      <div className="w-full max-w-md mx-auto bg-[#0f0f0f]/90 h-screen md:h-[92vh] md:my-[4vh] md:rounded-3xl relative shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col border border-zinc-800/30 overflow-hidden">
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -117,7 +89,6 @@ export default function App() {
                   setProfileSubView(subView || null);
                   setCurrentView(view);
                 }}
-                onNavigateToAdmin={() => setCurrentView('admin')}
               />
             ) : currentView === 'projects' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#0b0b0b]">
@@ -148,12 +119,12 @@ export default function App() {
                   onBack={() => setCurrentView('home')} 
                   onHome={() => setCurrentView('home')} 
                   initialSubView={profileSubView} 
-                  onNavigateToAdmin={() => setCurrentView('admin')}
+                  onNavigate={(v) => setCurrentView(v as ViewState)}
                 />
               </div>
             ) : currentView === 'cskh' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#f7f9fb]">
-                <UserCSKH onBack={() => setCurrentView('home')} onNavigateToAdmin={() => setCurrentView('admin')} />
+                <UserCSKH onBack={() => setCurrentView('home')} />
               </div>
             ) : currentView === 'vinfast' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#0b0b0b]">
@@ -192,6 +163,10 @@ export default function App() {
                     setCurrentView('vinpearl_project_detail');
                   }}
                   onNavigate={setCurrentView} 
+                  onNavigateToDeposit={() => {
+                    setProfileSubView('deposit');
+                    setCurrentView('profile');
+                  }}
                 />
               </div>
             ) : currentView === 'vinpearl_project_detail' ? (
@@ -200,11 +175,22 @@ export default function App() {
                   projectId={profileSubView}
                   onBack={() => setCurrentView('vinpearl_projects')} 
                   onInvest={() => setCurrentView('vinpearl_invest')} 
+                  onNavigateToDeposit={() => {
+                    setProfileSubView('deposit');
+                    setCurrentView('profile');
+                  }}
                 />
               </div>
             ) : currentView === 'vinpearl_invest' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#f7f9fb]">
-                <VinpearlInvestView projectId={profileSubView} onBack={() => setCurrentView('vinpearl_project_detail')} />
+                <VinpearlInvestView 
+                  projectId={profileSubView} 
+                  onBack={() => setCurrentView('vinpearl_project_detail')} 
+                  onNavigateToDeposit={() => {
+                    setProfileSubView('deposit');
+                    setCurrentView('profile');
+                  }}
+                />
               </div>
             ) : currentView === 'news_detail' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-gray-50">
