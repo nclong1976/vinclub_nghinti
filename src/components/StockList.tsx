@@ -42,7 +42,7 @@ export default function StockList({ onBack, onSelectStock }: { onBack: () => voi
         <h2 className="text-[17px] font-medium text-[#c29b57] tracking-wider uppercase">Vingroup Chứng Khoán</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide pb-36">
         {getAdjustedStocks(stocks).map(stock => (
           <button 
             key={stock.symbol}

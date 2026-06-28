@@ -17,7 +17,20 @@ interface HomeViewProps {
 export default function HomeView({
   onNavigate
 }: HomeViewProps) {
-  const { displayName, balance, cmsNews, articlesList, userId } = useUser();
+  const { displayName, balance, cmsNews, articlesList, userId, transactions } = useUser();
+
+  const totalDeposit = (transactions || [])
+    .filter((t: any) => t.type === 'deposit' && t.status === 'Thành công')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+  let tierName = 'MEMBER';
+  if (totalDeposit >= 10000000000) {
+    tierName = 'VVIP';
+  } else if (totalDeposit >= 5000000000) {
+    tierName = 'VIP';
+  } else if (totalDeposit >= 1000000000) {
+    tierName = 'GOLD';
+  }
   const [tickerMessages, setTickerMessages] = useState<string[]>([
     "Khách hàng ***829 vừa rút thành công 3.292.000.000 VNĐ",
     "Khách hàng ***415 vừa rút thành công 1.500.000.000 VNĐ",
@@ -193,7 +206,7 @@ export default function HomeView({
   const initials = getInitials(displayName);
 
   return (
-    <div className="flex-1 flex flex-col bg-white text-zinc-800 pb-24 overflow-y-auto overflow-x-hidden scrollbar-hide">
+    <div className="flex-1 flex flex-col bg-white text-zinc-800 pb-36 overflow-y-auto overflow-x-hidden scrollbar-hide">
       
       {/* Dynamic Keyframe Animations */}
       <style>{`
@@ -299,7 +312,7 @@ export default function HomeView({
               {initials}
             </div>
             <div className="bg-[#bc8f5f] px-3 py-1.5 rounded-md font-extrabold text-xs tracking-widest text-white shadow-sm">
-              MEMBER
+              {tierName}
             </div>
           </div>
           

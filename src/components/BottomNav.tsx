@@ -10,7 +10,7 @@ export default function BottomNav({
   const isHome = currentView === 'home';
   const isProfile = currentView === 'profile';
   const isCskh = currentView === 'cskh';
-  const isInvest = currentView === 'vinpearl_projects' || currentView === 'vinpearl_project_detail' || currentView === 'vinpearl_invest';
+  const isVipCard = currentView === 'cardRanking';
 
   const vipColorClass = "from-[#d4a373] to-[#b48b3b]"; 
 
@@ -41,9 +41,9 @@ export default function BottomNav({
         </span>
       </button>
 
-      {/* Đầu tư (Central Button) */}
+      {/* Thẻ VIP (Central Button) */}
       <button 
-        onClick={() => onViewChange && onViewChange('vinpearl_projects')}
+        onClick={() => onViewChange && onViewChange('cardRanking')}
         className="flex flex-col items-center justify-center flex-1 -mt-7 cursor-pointer outline-none focus:outline-none relative z-10"
       >
         <motion.div 
@@ -57,8 +57,8 @@ export default function BottomNav({
             <polygon points="12,5 12.8,7.3 15.2,7.3 13.2,8.7 14,11 12,9.6 10,11 10.8,8.7 8.8,7.3 11.2,7.3" fill="currentColor" />
           </svg>
         </motion.div>
-        <span className={`text-[9px] font-bold uppercase tracking-widest ${isInvest ? 'text-[#b48b3b]' : 'text-zinc-450'}`}>
-          Đầu tư
+        <span className={`text-[9px] font-bold uppercase tracking-widest ${isVipCard ? 'text-[#b48b3b]' : 'text-zinc-450'}`}>
+          Thẻ VIP
         </span>
       </button>
 

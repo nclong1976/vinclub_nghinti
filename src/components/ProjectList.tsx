@@ -100,7 +100,7 @@ export default function ProjectList({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* List */}
-      <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 pb-28 scrollbar-hide space-y-4">
+      <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 pb-40 scrollbar-hide space-y-4">
         {projects.map(project => (
           <ProjectCard key={project.id} project={project} onInvest={() => setSelectedProject(project)} />
         ))}

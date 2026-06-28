@@ -1327,7 +1327,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
     }
 
     return (
-      <div className="flex-1 overflow-y-auto bg-[#0d0d0d] flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto bg-[#0d0d0d] flex flex-col h-full pb-36">
         <div className="flex items-center justify-between p-4 bg-[#0d0d0d] sticky top-0 z-20 border-b border-zinc-800">
           <div className="flex items-center gap-3">
             <button onClick={() => setActiveSubView(null)} className="p-1 -ml-1 text-zinc-300 hover:text-white transition-colors">

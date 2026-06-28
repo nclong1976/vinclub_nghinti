@@ -44,7 +44,7 @@ export default function CasinoList({ onBack }: { onBack: () => void }) {
     <div className="flex flex-col h-full bg-[#0b0b0b] relative">
       <CasinoHeader onBack={onBack} />
       
-      <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 pb-28 scrollbar-hide">
+      <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 pb-40 scrollbar-hide">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4">
           {games.map(game => (
             <CasinoGameCard key={game.id} game={game} />
