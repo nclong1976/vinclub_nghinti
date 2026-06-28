@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { UserContext } from './UserContext';
+import viettelIdcImage from '../assets/images/regenerated_image_1782460662494.jpg';
 
 interface AllNewsViewProps {
   onBack: () => void;
@@ -40,6 +41,14 @@ export default function AllNewsView({ onBack, onNavigateNews }: AllNewsViewProps
 
   // 3. Add original core static news as fallback if they aren't included
   const coreStaticNews = [
+    {
+      id: 'viettel_idc_vingroup',
+      title: 'Cộng hưởng sức mạnh: Viettel IDC và Vingroup bắt tay nâng cấp toàn diện hệ sinh thái VinClub',
+      category: 'Tin tức hợp tác',
+      image: viettelIdcImage,
+      date: '26 Th06, 2026',
+      author: 'VinClub News'
+    },
     {
       id: 'vf8_2022',
       title: 'Dấu ấn VF 8 2022: Ô tô điện Việt Nam vươn tầm thế giới',
