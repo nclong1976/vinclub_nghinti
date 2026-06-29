@@ -29,6 +29,7 @@ import VinpearlProjectDetailView from './components/VinpearlProjectDetailView';
 import VinpearlInvestView from './components/VinpearlInvestView';
 import CardRankingView from './components/CardRankingView';
 import AllNewsView from './components/AllNewsView';
+import AdminDashboard from './components/AdminDashboard';
 
 export type ViewState = 'home' | 'projects' | 'stockList' | 'stockDetail' | 'casino' | 'profile' | 'cskh' | 'vinfast' | 'welfare_consultation' | 'news_detail' | 'investment_reasons' | 'welfare_resort' | 'welfare_education' | 'welfare_medical' | 'welfare_shopping' | 'welfare_vinhomes' | 'vinpearl_projects' | 'vinpearl_project_detail' | 'vinpearl_invest' | 'all_news' | 'cardRanking';
 
@@ -36,7 +37,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>('home');
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const { isEditMode, setIsEditMode } = useImage();
-  const { isLoggedIn, getAdjustedStocks } = useUser();
+  const { isLoggedIn, getAdjustedStocks, role } = useUser();
 
   // Interactive modal states
   const [profileSubView, setProfileSubView] = useState<string | null>(null);
@@ -53,6 +54,14 @@ export default function App() {
           <AuthScreen />
         </div>
       </div>
+    );
+  }
+
+  // Redirect admin users to the Admin Dashboard
+  const isAdminRole = role === 'admin' || role === 'super_admin' || role === 'support_admin' || role === 'finance_admin';
+  if (isAdminRole) {
+    return (
+      <AdminDashboard />
     );
   }
 
