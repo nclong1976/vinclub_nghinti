@@ -6,7 +6,7 @@ import StockList from './components/StockList';
 import StockDetail from './components/StockDetail';
 import CasinoList from './components/CasinoList';
 import Profile from './components/Profile';
-import UserCSKH from './components/UserCSKH';
+import UserChat from './components/UserChat';
 import VinfastView from './components/VinfastView';
 import WelfareConsultationView from './components/WelfareConsultationView';
 import HomeView from './components/HomeView';
@@ -133,7 +133,7 @@ export default function App() {
               </div>
             ) : currentView === 'cskh' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#f7f9fb]">
-                <UserCSKH onBack={() => setCurrentView('home')} />
+                <UserChat />
               </div>
             ) : currentView === 'vinfast' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#0b0b0b]">

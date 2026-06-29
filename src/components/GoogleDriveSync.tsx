@@ -348,7 +348,7 @@ Báo cáo này được kết xuất tự động từ hệ thống quản lý h
             <Cloud className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-zinc-100 text-[15px] uppercase tracking-wide">Google Drive Sync</h3>
+            <h3 className="font-bold text-zinc-100 text-[15px] uppercase tracking-wide">Đồng bộ hóa Google Drive</h3>
             <p className="text-[11px] text-zinc-500">Sao lưu bảo chứng pháp lý điện tử</p>
           </div>
         </div>

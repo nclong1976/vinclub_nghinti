@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Project } from '../types';
 import { motion } from 'framer-motion';
+import AdminChatSupport from './admin/AdminChatSupport';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Legend 
@@ -257,7 +258,7 @@ export default function AdminDashboard() {
       setThreadMessages(msgs);
       
       // Mark as read
-      const unreadMsgs = msgs.filter(m => m.sender_role === 'user' && !m.is_read);
+      const unreadMsgs = msgs.filter((m: any) => m.sender_role === 'user' && !m.is_read);
       unreadMsgs.forEach(async (m) => {
         await updateDoc(doc(db, 'chat_messages', m.id), { is_read: true });
       });
@@ -1355,138 +1356,7 @@ export default function AdminDashboard() {
 
           {/* Support CSKH Tab */}
           {activeTab === 'cskh' && (
-            <div className="h-[calc(100vh-140px)] flex bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
-              
-              {/* Chat Threads Sidebar */}
-              <div className="w-80 border-r border-zinc-800 flex flex-col bg-zinc-950/30">
-                <div className="p-4 border-b border-zinc-800">
-                  <h3 className="font-bold text-[#ebd5ad] font-['Montserrat'] tracking-wide uppercase">Kênh hỗ trợ chat</h3>
-                  <p className="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Tất cả cuộc hội thoại</p>
-                </div>
-                <div className="flex-1 overflow-y-auto divide-y divide-zinc-850/60">
-                  {chatThreads.map(thread => {
-                    const { displayName } = getChatUserInfo(thread.conversation_id);
-                    const isSelected = selectedThread === thread.conversation_id;
-                    const status = threadStatuses[thread.conversation_id] || 'pending';
-
-                    return (
-                      <div 
-                        key={thread.conversation_id}
-                        onClick={() => setSelectedThread(thread.conversation_id)}
-                        className={`p-4 cursor-pointer transition-all flex items-center justify-between ${
-                          isSelected ? 'bg-[#c29b57]/10 border-l-[3px] border-[#c29b57]' : 'hover:bg-zinc-850/20'
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1 pr-2">
-                          <div className="font-bold text-zinc-100 flex items-center gap-2">
-                            <span className="truncate">{displayName}</span>
-                            {thread.unreadCount > 0 && (
-                              <span className="bg-rose-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
-                                {thread.unreadCount}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-zinc-500 truncate mt-1">{thread.lastMessage}</p>
-                        </div>
-                        
-                        {/* Status Tag */}
-                        <span className={`text-[8px] font-black px-2 py-0.5 rounded shrink-0 uppercase tracking-widest ${
-                          status === 'completed' ? 'bg-emerald-950 text-emerald-450 border border-emerald-900' : 'bg-amber-950 text-amber-450 border border-amber-900'
-                        }`}>
-                          {status === 'completed' ? 'Đã xong' : 'Xử lý'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {chatThreads.length === 0 && (
-                    <div className="p-8 text-center text-zinc-600 text-xs">
-                      Không có cuộc trò chuyện nào.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Chat Canvas */}
-              <div className="flex-1 flex flex-col bg-zinc-900/60">
-                {selectedThread ? (
-                  <>
-                    {/* Header */}
-                    <div className="px-6 py-4 bg-zinc-950/40 border-b border-zinc-850 flex items-center justify-between">
-                      <div>
-                        <h4 className="font-bold text-zinc-100">{getChatUserInfo(selectedThread).displayName}</h4>
-                        <p className="text-[9px] text-zinc-500 font-mono tracking-wider">{selectedThread}</p>
-                      </div>
-                      
-                      {/* Thread Quick info and state action */}
-                      <div className="flex items-center gap-3">
-                        <div className="text-[11px] text-zinc-400 font-bold border-r border-zinc-800 pr-4 mr-1">
-                          Số dư: <strong className="text-[#ebd5ad]">{getChatUserInfo(selectedThread).balance.toLocaleString('vi-VN')} VNĐ</strong>
-                          <span className="mx-2 text-zinc-600">|</span>
-                          Hạng: <strong className="text-amber-400">{getChatUserInfo(selectedThread).tier}</strong>
-                        </div>
-
-                        <button 
-                          onClick={() => handleToggleThreadStatus(selectedThread)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${
-                            (threadStatuses[selectedThread] || 'pending') === 'completed'
-                              ? 'bg-emerald-950 text-emerald-400 border-emerald-850 hover:bg-emerald-900'
-                              : 'bg-amber-950 text-amber-300 border-amber-900 hover:bg-amber-900'
-                          }`}
-                        >
-                          Trạng thái: {(threadStatuses[selectedThread] || 'pending') === 'completed' ? 'Đã hoàn thành ✓' : 'Đang xử lý 💬'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Messages Body */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                      {threadMessages.map(msg => {
-                        const isAdminMsg = msg.sender_role === 'admin';
-                        return (
-                          <div key={msg.id} className={`flex w-full ${isAdminMsg ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-md flex flex-col gap-1 ${
-                              isAdminMsg 
-                                ? 'bg-[#c29b57] text-black rounded-tr-sm font-semibold' 
-                                : 'bg-zinc-800 text-zinc-100 rounded-tl-sm border border-zinc-700/60'
-                            }`}>
-                              <p>{msg.content}</p>
-                              <span className={`text-[8px] self-end mt-0.5 ${isAdminMsg ? 'text-black/60' : 'text-zinc-500'}`}>
-                                {msg.timeFormatted}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div ref={chatEndRef} />
-                    </div>
-
-                    {/* Chat Reply Form */}
-                    <form onSubmit={handleSendAdminReply} className="p-4 bg-zinc-950/40 border-t border-zinc-850 flex gap-3">
-                      <input 
-                        type="text"
-                        placeholder="Nhập phản hồi hỗ trợ cho hội viên..."
-                        value={adminReplyText}
-                        onChange={(e) => setAdminReplyText(e.target.value)}
-                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-200 focus:border-[#c29b57] focus:outline-none"
-                      />
-                      <button 
-                        type="submit"
-                        disabled={!adminReplyText.trim()}
-                        className="bg-[#c29b57] disabled:bg-zinc-800 text-black disabled:text-zinc-650 font-bold text-xs px-5 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors active:scale-95 shadow-md"
-                      >
-                        <Send className="w-4 h-4" />
-                        Gửi
-                      </button>
-                    </form>
-                  </>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-zinc-550 gap-3">
-                    <MessageSquare className="w-12 h-12 text-zinc-750" />
-                    <p className="text-xs font-semibold">Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu hỗ trợ</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <AdminChatSupport />
           )}
         </main>
       </div>

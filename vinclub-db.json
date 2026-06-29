@@ -1,0 +1,57 @@
+{
+  "config": {
+    "maintenance": false,
+    "siteName": "VinClub Corona",
+    "currency": "VND",
+    "minDeposit": 50000,
+    "maxBet": 10000000
+  },
+  "users": {
+    "placeholder": {
+      "username": "admin",
+      "balance": 0,
+      "role": "admin",
+      "status": "active",
+      "createdAt": 1719630000000
+    }
+  },
+  "rooms": {
+    "baccarat_1": {
+      "name": "Baccarat VIP",
+      "status": "open",
+      "minBet": 100000,
+      "maxBet": 5000000,
+      "currentRound": 0,
+      "players": 0
+    },
+    "baccarat_2": {
+      "name": "Baccarat Standard",
+      "status": "open",
+      "minBet": 50000,
+      "maxBet": 1000000,
+      "currentRound": 0,
+      "players": 0
+    }
+  },
+  "rounds": {
+    "baccarat_1": {
+      "current": {
+        "roundId": "R001",
+        "status": "waiting",
+        "result": null,
+        "totalBetPlayer": 0,
+        "totalBetBanker": 0,
+        "totalBetTie": 0
+      }
+    }
+  },
+  "bets": {
+    "placeholder": "init"
+  },
+  "presence": {
+    "placeholder": "init"
+  },
+  "notifications": {
+    "placeholder": "init"
+  }
+}
