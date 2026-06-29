@@ -15,6 +15,7 @@ export type Transaction = {
   contractProjectTitle?: string;
   note?: string;
   proofImage?: string;
+  timestamp?: string;
 };
 
 export type BankInfo = {
@@ -981,10 +982,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updates.balance = balance + 50000;
       setBalanceState(balance + 50000);
 
-      const newTx = {
+      const newTx: Transaction = {
         id: 'welcome-voucher-' + Date.now(),
         type: 'bonus',
         amount: 50000,
+        date: new Date().toLocaleDateString('vi-VN'),
         status: 'Thành công',
         note: 'Nhận Welcome Voucher sau khi xác thực tài khoản thành công',
         timestamp: new Date().toISOString()
