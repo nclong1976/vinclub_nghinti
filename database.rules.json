@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "users": {
+      ".indexOn": ["createdAt"],
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.admin === true)",
+        ".write": "auth != null && auth.uid === $uid",
+        "status": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "chats": {
+      ".indexOn": ["metadata/updatedAt"],
+      "$userId": {
+        ".read": "auth != null && (auth.uid === $userId || auth.token.admin === true)",
+        "messages": {
+          ".write": "auth != null && (auth.uid === $userId || auth.token.admin === true)"
+        },
+        "metadata": {
+          ".write": "auth != null && (auth.uid === $userId || auth.token.admin === true)"
+        }
+      }
+    }
+  }
+}
