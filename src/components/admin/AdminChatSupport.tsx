@@ -69,16 +69,26 @@ export default function AdminChatSupport() {
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] flex bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg font-sans">
+    <div className="h-[calc(100vh-140px)] flex flex-row bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg font-sans">
       {/* Chat Threads Sidebar */}
-      <div className="w-85 border-r border-zinc-850 flex flex-col bg-zinc-950/30">
+      <div className="w-[260px] flex-shrink-0 border-r border-zinc-850 flex flex-col bg-zinc-950/30">
         <div className="p-4 border-b border-zinc-850">
           <h3 className="font-bold text-[#ebd5ad] font-['Montserrat'] tracking-wide uppercase text-xs">Kênh hỗ trợ chat</h3>
           <p className="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Tất cả cuộc hội thoại</p>
         </div>
         <div className="flex-1 overflow-y-auto divide-y divide-zinc-850/60">
           {roomsLoading ? (
-            <p className="p-4 text-zinc-400 text-xs text-center">Đang tải...</p>
+            <div className="p-4 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse flex items-center justify-between p-3 rounded-xl bg-zinc-900/60 border border-zinc-850/40">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-zinc-800 rounded w-2/3"></div>
+                    <div className="h-2 bg-zinc-800/60 rounded w-1/2"></div>
+                  </div>
+                  <div className="h-4 bg-[#c29b57]/20 border border-[#c29b57]/10 rounded w-8 shrink-0"></div>
+                </div>
+              ))}
+            </div>
           ) : rooms.length === 0 ? (
             <div className="p-8 text-center text-zinc-650 text-xs">
               Không có cuộc trò chuyện nào.
@@ -125,7 +135,7 @@ export default function AdminChatSupport() {
       </div>
 
       {/* Chat Canvas */}
-      <div className="flex-1 flex flex-col bg-zinc-900/60">
+      <div className="flex-1 min-w-[300px] flex flex-col bg-zinc-900/60 overflow-hidden">
         {activeUserId ? (
           <>
             {/* Header */}
@@ -206,9 +216,11 @@ export default function AdminChatSupport() {
             </form>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-550 gap-3">
-            <MessageSquare className="w-12 h-12 text-zinc-700" />
-            <p className="text-xs font-semibold">Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu hỗ trợ</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-3 p-6 overflow-hidden">
+            <MessageSquare className="w-12 h-12 text-[#c29b57]/60 animate-pulse" />
+            <p className="text-xs font-semibold text-center max-w-xs break-words leading-relaxed text-zinc-400">
+              Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu hỗ trợ
+            </p>
           </div>
         )}
       </div>

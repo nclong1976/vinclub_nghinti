@@ -7,7 +7,7 @@ export default function AdminUserList() {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">
-        Quản lý người dùng ({users.length})
+        Quản lý Người dùng ({users.length})
       </h2>
 
       {loading ? (
