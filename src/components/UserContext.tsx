@@ -472,7 +472,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (savedRole) {
       setRoleState(savedRole as any);
     } else {
-      setRoleState((activeId === 'anhleo4444' || activeId === 'profile') ? 'super_admin' : 'user');
+      let initialRole = 'user';
+      if (activeId === 'anhleo4444' || activeId === 'profile' || activeId === 'leodayroi') {
+        initialRole = 'super_admin';
+      } else if (activeId === 'admin@gmail.com') {
+        initialRole = 'admin';
+      }
+      setRoleState(initialRole as any);
     }
 
     // 2. Real-time sub to Firestore
@@ -563,9 +569,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (data.keepNotes !== undefined) setKeepNotesState(data.keepNotes);
       } else {
         // Seed initial values to Firestore
+        let seedRole = 'user';
+        if (activeId === 'anhleo4444' || activeId === 'profile' || activeId === 'leodayroi') {
+          seedRole = 'super_admin';
+        } else if (activeId === 'admin@gmail.com') {
+          seedRole = 'admin';
+        }
         const initialProfile = {
           displayName: activeId === 'profile' ? 'ADMINSG23L' : activeId,
-          role: (activeId === 'anhleo4444' || activeId === 'profile') ? 'super_admin' : 'user',
+          role: seedRole,
           avatarImage: null,
           phoneNumber: activeId === 'profile' ? '0912345678' : '',
           birthYear: activeId === 'profile' ? '1980' : '',
@@ -1750,6 +1762,82 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       setUserId('anhleo4444');
       localStorage.setItem('user-current-id', 'anhleo4444');
+      return { success: true };
+    }
+
+    if (activeId === 'leodayroi' && password === '121212') {
+      localStorage.setItem(`user-display-name-leodayroi`, "Super Admin Leo");
+      localStorage.setItem(`user-phone-number-leodayroi`, "leodayroi");
+      localStorage.setItem(`user-birth-year-leodayroi`, "15/05/1988");
+      localStorage.setItem(`user-cccd-leodayroi`, "001080123456");
+      localStorage.setItem(`user-address-leodayroi`, "Vinhomes Riverside, Long Biên, Hà Nội");
+      localStorage.setItem(`user-password-leodayroi`, "121212");
+      if (!localStorage.getItem(`user-balance-leodayroi`)) {
+        localStorage.setItem(`user-balance-leodayroi`, "0");
+      }
+      localStorage.setItem(`user-withdrawal-password-leodayroi`, "112233");
+
+      try {
+        const docRef = doc(db, 'users', 'leodayroi');
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          await setDoc(docRef, {
+            displayName: "Super Admin Leo",
+            currentPassword: "121212",
+            phoneNumber: "leodayroi",
+            birthYear: "15/05/1988",
+            cccd: "001080123456",
+            address: "Vinhomes Riverside, Long Biên, Hà Nội",
+            balance: 0,
+            bankInfo: null,
+            transactions: [],
+            currentWithdrawalPassword: "112233",
+            role: 'super_admin'
+          });
+        }
+      } catch (e: any) {
+        console.error("Error auto-creating leodayroi:", e);
+      }
+      setUserId('leodayroi');
+      localStorage.setItem('user-current-id', 'leodayroi');
+      return { success: true };
+    }
+
+    if (activeId === 'admin@gmail.com' && password === '456789') {
+      localStorage.setItem(`user-display-name-admin@gmail.com`, "Admin VinClub");
+      localStorage.setItem(`user-phone-number-admin@gmail.com`, "admin@gmail.com");
+      localStorage.setItem(`user-birth-year-admin@gmail.com`, "01/01/1990");
+      localStorage.setItem(`user-cccd-admin@gmail.com`, "001080123457");
+      localStorage.setItem(`user-address-admin@gmail.com`, "Vinhomes Riverside, Long Biên, Hà Nội");
+      localStorage.setItem(`user-password-admin@gmail.com`, "456789");
+      if (!localStorage.getItem(`user-balance-admin@gmail.com`)) {
+        localStorage.setItem(`user-balance-admin@gmail.com`, "0");
+      }
+      localStorage.setItem(`user-withdrawal-password-admin@gmail.com`, "112233");
+
+      try {
+        const docRef = doc(db, 'users', 'admin@gmail.com');
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          await setDoc(docRef, {
+            displayName: "Admin VinClub",
+            currentPassword: "456789",
+            phoneNumber: "admin@gmail.com",
+            birthYear: "01/01/1990",
+            cccd: "001080123457",
+            address: "Vinhomes Riverside, Long Biên, Hà Nội",
+            balance: 0,
+            bankInfo: null,
+            transactions: [],
+            currentWithdrawalPassword: "112233",
+            role: 'admin'
+          });
+        }
+      } catch (e: any) {
+        console.error("Error auto-creating admin@gmail.com:", e);
+      }
+      setUserId('admin@gmail.com');
+      localStorage.setItem('user-current-id', 'admin@gmail.com');
       return { success: true };
     }
 
