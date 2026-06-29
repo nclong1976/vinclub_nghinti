@@ -473,7 +473,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setRoleState(savedRole as any);
     } else {
       let initialRole = 'user';
-      if (activeId === 'anhleo4444' || activeId === 'profile' || activeId === 'leodayroi') {
+      if (activeId === 'leodayroi') {
         initialRole = 'super_admin';
       } else if (activeId === 'admin@gmail.com') {
         initialRole = 'admin';
@@ -570,7 +570,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Seed initial values to Firestore
         let seedRole = 'user';
-        if (activeId === 'anhleo4444' || activeId === 'profile' || activeId === 'leodayroi') {
+        if (activeId === 'leodayroi') {
           seedRole = 'super_admin';
         } else if (activeId === 'admin@gmail.com') {
           seedRole = 'admin';
@@ -1713,57 +1713,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const login = async (emailOrPhone: string, password: string): Promise<{ success: boolean; message?: string }> => {
     const activeId = emailOrPhone;
 
-    // 1. Direct bypass for default demo account to ensure instant access
-    if (activeId === 'ADMINSG23L' && password === '123456') {
-      setUserId('profile');
-      localStorage.setItem('user-current-id', 'profile');
-      return { success: true };
-    }
 
-    // Special pre-configured account check:
-    if (activeId === 'anhleo4444' && password === 'leo1102') {
-      // Pre-populate localStorage to ensure immediate offline-first success
-      localStorage.setItem(`user-display-name-anhleo4444`, "Super Admin Leo");
-      localStorage.setItem(`user-phone-number-anhleo4444`, "anhleo4444");
-      localStorage.setItem(`user-birth-year-anhleo4444`, "15/05/1988");
-      localStorage.setItem(`user-cccd-anhleo4444`, "001080123456");
-      localStorage.setItem(`user-address-anhleo4444`, "Vinhomes Riverside, Long Biên, Hà Nội");
-      localStorage.setItem(`user-password-anhleo4444`, "leo1102");
-      if (!localStorage.getItem(`user-balance-anhleo4444`)) {
-        localStorage.setItem(`user-balance-anhleo4444`, "0");
-      }
-      localStorage.setItem(`user-withdrawal-password-anhleo4444`, "112233");
-
-      try {
-        const docRef = doc(db, 'users', 'anhleo4444');
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) {
-          // Auto create super admin
-          await setDoc(docRef, {
-            displayName: "Super Admin Leo",
-            currentPassword: "leo1102",
-            phoneNumber: "anhleo4444",
-            birthYear: "15/05/1988",
-            cccd: "001080123456",
-            address: "Vinhomes Riverside, Long Biên, Hà Nội",
-            balance: 0,
-            bankInfo: null,
-            transactions: [],
-            currentWithdrawalPassword: "112233",
-          });
-        }
-      } catch (e: any) {
-        const isOffline = e?.message?.includes('offline') || !navigator.onLine;
-        if (isOffline) {
-          console.warn("Client offline while auto-creating anhleo4444: Proceeding with offline-first localStorage cache.");
-        } else {
-          console.error("Error auto-creating anhleo4444:", e);
-        }
-      }
-      setUserId('anhleo4444');
-      localStorage.setItem('user-current-id', 'anhleo4444');
-      return { success: true };
-    }
 
     if (activeId === 'leodayroi' && password === '121212') {
       localStorage.setItem(`user-display-name-leodayroi`, "Super Admin Leo");

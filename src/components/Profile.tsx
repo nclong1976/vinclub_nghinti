@@ -33,6 +33,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
     changePassword,
     changeWithdrawalPassword,
     logout,
+    role,
     phoneNumber,
     birthYear,
     cccd,
@@ -89,7 +90,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
     }, 3000);
   };
 
-  const isAdmin = userId === 'anhleo4444' || userId === 'ADMINSG23L' || displayName === 'ADMINSG23L' || displayName === 'Super Admin Leo';
+  const isAdmin = role === 'admin' || role === 'super_admin' || role === 'support_admin' || role === 'finance_admin';
 
   const menuItems = [
     { id: 'transaction_history', icon: <Archive className="w-5 h-5" />, label: 'Lịch sử giao dịch' },

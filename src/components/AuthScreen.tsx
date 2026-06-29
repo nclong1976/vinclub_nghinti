@@ -141,8 +141,8 @@ export default function AuthScreen() {
   };
 
   const useDemoAccount = () => {
-    setLoginEmailOrPhone('ADMINSG23L');
-    setLoginPassword('123456');
+    setLoginEmailOrPhone('testvin');
+    setLoginPassword('121212');
     setErrorMsg(null);
   };
 

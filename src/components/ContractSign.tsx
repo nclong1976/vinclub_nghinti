@@ -13,7 +13,7 @@ interface ContractSignProps {
 }
 
 export default function ContractSign({ project, amount, onSignComplete, onBack }: ContractSignProps) {
-  const { displayName } = useUser();
+  const { displayName, userId } = useUser();
   const [activeTab, setActiveTab] = useState<'draw' | 'type' | 'saved'>('draw');
   
   // Signature source states
@@ -176,7 +176,7 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
             <div className="space-y-0.5">
               <p className="font-bold text-zinc-900 font-sans">BÊN B: KHÁCH HÀNG / THÀNH VIÊN ĐẦU TƯ</p>
               <p>• Họ và tên: <span className="font-bold text-zinc-900 uppercase">{displayName || 'Thành viên VinClub'}</span></p>
-              <p>• Tài khoản giao dịch: <span className="font-mono text-zinc-600">{displayName ? 'User Profile' : 'ADMINSG23L'}</span></p>
+              <p>• Tài khoản giao dịch: <span className="font-mono text-zinc-600">{userId || 'Hội viên'}</span></p>
             </div>
           </div>
 
