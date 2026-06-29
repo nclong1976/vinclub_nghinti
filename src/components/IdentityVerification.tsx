@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { ArrowLeft, Camera, UploadCloud, FileImage, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useUser } from './UserContext';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import frontDefaultImg from '../assets/images/regenerated_image_1782467998194.webp';
 import backDefaultImg from '../assets/images/regenerated_image_1782467997539.webp';
 
@@ -9,8 +11,48 @@ interface IdentityVerificationProps {
   onSuccess: () => void;
 }
 
+// Client-side image compression utility using HTML5 Canvas
+const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 800, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(base64Str);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      resolve(base64Str); // Fallback to original base64
+    };
+  });
+};
+
 export default function IdentityVerification({ onBack, onSuccess }: IdentityVerificationProps) {
-  const { updateUserField } = useUser();
+  const { userId } = useUser();
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,14 +85,21 @@ export default function IdentityVerification({ onBack, onSuccess }: IdentityVeri
 
     setIsSubmitting(true);
     try {
-      if (updateUserField) {
-        await Promise.all([
-          updateUserField('cccdFrontImage', frontImage),
-          updateUserField('cccdBackImage', backImage),
-          updateUserField('kycStatus', 'pending'),
-          updateUserField('kycRejectReason', null)
-        ]);
-      }
+      // Compress both front and back images in parallel to prevent exceeding Firestore 1MB document size limit
+      const [compressedFront, compressedBack] = await Promise.all([
+        compressImage(frontImage, 800, 800, 0.7),
+        compressImage(backImage, 800, 800, 0.7)
+      ]);
+
+      const activeId = userId || 'profile';
+      
+      // Update all fields in a single atomic updateDoc call to prevent multiple concurrent requests
+      await updateDoc(doc(db, 'users', activeId), {
+        cccdFrontImage: compressedFront,
+        cccdBackImage: compressedBack,
+        kycStatus: 'pending',
+        kycRejectReason: null
+      });
       
       setShowToast({ message: 'Đã gửi thông tin xác thực thành công. Chúng tôi sẽ xử lý trong thời gian sớm nhất.', type: 'success' });
       setTimeout(() => {
@@ -59,7 +108,7 @@ export default function IdentityVerification({ onBack, onSuccess }: IdentityVeri
         onSuccess();
       }, 2500);
     } catch (e) {
-      console.error(e);
+      console.error('Lỗi khi gửi thông tin xác thực KYC:', e);
       setShowToast({ message: 'Lỗi khi gửi thông tin.', type: 'error' });
       setIsSubmitting(false);
       setTimeout(() => setShowToast(null), 3000);
