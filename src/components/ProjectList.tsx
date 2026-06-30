@@ -56,25 +56,26 @@ export default function ProjectList({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const allowedCategories = ['Vinhomes', 'Y TẾ', 'GIÁO DỤC', 'THƯƠNG MẠI', 'CÔNG NGHỆ'];
     const q = query(collection(db, "projects"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
         // Fallback to local data if empty
         import('../data').then(({ projects: localProjects }) => {
-          setProjects(localProjects);
+          setProjects(localProjects.filter((p: any) => allowedCategories.includes(p.category)));
           setLoading(false);
         });
         return;
       }
       const projectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
       projectsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-      setProjects(projectsData);
+      setProjects(projectsData.filter(p => allowedCategories.includes(p.category)));
       setLoading(false);
     }, (error) => {
       console.error("Error listening to projects:", error);
       // Fallback to local data on error
       import('../data').then(({ projects: localProjects }) => {
-        setProjects(localProjects);
+        setProjects(localProjects.filter((p: any) => allowedCategories.includes(p.category)));
         setLoading(false);
       });
       handleFirestoreError(error, OperationType.GET, "projects");
