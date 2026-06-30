@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection, query, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection, query, writeBatch, getDocs, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Stock, PortfolioItem, Order, Project, AuditLogEntry, CasinoGame } from '../types';
 import { ref, set, update, serverTimestamp } from 'firebase/database';
@@ -91,6 +91,7 @@ type UserContextType = {
   changeWithdrawalPassword: (oldP: string, newP: string) => boolean;
   isLoggedIn: boolean;
   userId: string | null;
+  termsAccepted: boolean;
   login: (emailOrPhone: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (emailOrPhone: string, password: string, lastName: string, firstName: string, referralCode?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -168,6 +169,7 @@ export const UserContext = createContext<UserContextType>({
   changeWithdrawalPassword: () => false,
   isLoggedIn: false,
   userId: null,
+  termsAccepted: false,
   login: async () => ({ success: false, message: 'Not implemented' }),
   register: async () => ({ success: false, message: 'Not implemented' }),
   logout: () => { },
@@ -319,6 +321,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [kycRejectReasonState, setKycRejectReasonState] = useState<string | undefined>(undefined);
   const [hasReceivedWelcomeVoucher, setHasReceivedWelcomeVoucherState] = useState<boolean>(false);
   const [role, setRoleState] = useState<'user' | 'admin' | 'super_admin' | 'finance_admin' | 'support_admin'>('user');
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
 
   // System Instructions State
   const [systemInstructions, setSystemInstructionsState] = useState<string>('');
@@ -530,6 +533,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (data.portfolio !== undefined) setPortfolioState(data.portfolio);
         if (data.orderHistory !== undefined) setOrderHistoryState(data.orderHistory);
         if (data.keepNotes !== undefined) setKeepNotesState(data.keepNotes);
+        if (data.termsAccepted !== undefined) setTermsAccepted(data.termsAccepted);
         setIsUserDocLoaded(true);
       } else {
         // Seed initial values to Firestore
@@ -613,7 +617,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const data = docSnap.data();
         if (data.news) setCmsNewsState(data.news);
         if (data.banners) setCmsBannersState(data.banners);
-        if (data.vinfast) setCmsVinfastState(data.vinfast);
       }
     });
     return () => unsubscribe();
@@ -1370,9 +1373,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const updateAllVinfastStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
     try {
-      const updatedCars = cmsVinfast.map(car => ({ ...car, status: newStatus }));
-      await setDoc(doc(db, 'settings', 'cms_data'), { vinfast: updatedCars }, { merge: true });
-      setCmsVinfastState(updatedCars);
+      const batch = writeBatch(db);
+      standardProjects.forEach(p => {
+        if (p.category.toUpperCase() === 'VINFAST') {
+          batch.update(doc(db, 'projects', p.id), { status: newStatus });
+        }
+      });
+      await batch.commit();
 
       const newLog: AuditLogEntry = {
         id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
@@ -1868,8 +1875,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       if (docSnap.exists()) {
         return { success: false, message: 'Tài khoản này đã tồn tại.' };
-      } else {
-        const displayName = `${lastName} ${firstName}`.trim() || activeId;
+      }
+
+      // Check duplicate phone number across the system
+      const qPhone = query(collection(db, 'users'), where('phoneNumber', '==', emailOrPhone.trim()));
+      const snapPhone = await getDocs(qPhone);
+      if (!snapPhone.empty) {
+        return { success: false, message: 'Số điện thoại này đã được đăng ký trên hệ thống.' };
+      }
+
+      const displayName = `${lastName} ${firstName}`.trim() || activeId;
         const initialProfile = {
           displayName,
           avatarImage: null,
@@ -1887,7 +1902,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           currentWithdrawalPassword: '112233',
           passwordChangeLog: [],
           withdrawalPasswordChangeLog: [],
-          referralCode: referralCode || ''
+          referralCode: referralCode || '',
+          termsAccepted: false
         };
         await setDoc(docRef, initialProfile);
 
@@ -1937,7 +1953,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setUserId(activeId);
         localStorage.setItem('user-current-id', activeId);
         return { success: true };
-      }
     } catch (e: any) {
       const isOffline = e?.message?.includes('offline') || !navigator.onLine;
       if (isOffline) {
@@ -2215,6 +2230,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setIsIdentityVerified: handleSetIsIdentityVerified,
       updateUserField: handleUpdateUserField,
       role,
+      termsAccepted,
       cmsNews,
       cmsBanners,
       cmsVinfast,

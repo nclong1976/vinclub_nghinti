@@ -13,6 +13,9 @@ export interface Message {
   senderId: string;
   text: string;
   createdAt: number;
+  type?: 'text' | 'image' | 'video' | 'file';
+  fileUrl?: string;
+  fileName?: string;
 }
 
 // roomUserId: luôn là uid của user (không phải adminId)

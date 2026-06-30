@@ -31,6 +31,9 @@ export interface Project {
   status?: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED';
   targetCapital?: number;
   raisedCapital?: number;
+  description?: string;
+  location?: string;
+  highlights?: string[];
 }
 
 export interface AuditLogEntry {

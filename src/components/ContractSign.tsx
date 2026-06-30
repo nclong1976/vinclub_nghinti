@@ -128,12 +128,21 @@ export default function ContractSign({ project, amount, onSignComplete, onBack }
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#080808] flex flex-col w-full text-zinc-100 font-['Plus_Jakarta_Sans'] pb-20">
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;700&display=swap');
+        .font-contract-document, 
+        .font-contract-document *,
+        .font-contract-document font-sans,
+        .font-contract-document font-serif {
+          font-family: 'Aptos Narrow', 'Archivo Narrow', 'Arial Narrow', sans-serif !important;
+        }
+      `}} />
       
       {/* Scrollable contract document container */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 max-h-[50vh] scrollbar-hide border border-zinc-800/80 bg-zinc-900/40 rounded-xl mb-4 shadow-inner">
         
         {/* Document Frame styling */}
-        <div className="bg-white p-5 md:p-6 border border-zinc-200 shadow-sm rounded-lg text-zinc-800 text-[11px] leading-relaxed space-y-4 font-serif relative">
+        <div className="bg-white p-5 md:p-6 border border-zinc-200 shadow-sm rounded-lg text-zinc-800 text-[11px] leading-relaxed space-y-4 font-contract-document relative">
           
           {/* Background Decorative Gold Crest */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-3 pointer-events-none select-none">

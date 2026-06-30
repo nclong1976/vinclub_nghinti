@@ -9,7 +9,7 @@ import {
   Building2, Users, MessageSquare, Plus, Edit, Trash2, Eye, EyeOff, 
   LogOut, Check, X, Search, ShieldCheck, DollarSign, Clock, Send, 
   AlertCircle, ShieldAlert, Lock, Unlock, RefreshCw, CheckCircle2,
-  FileText, Activity, CreditCard, ChevronRight
+  FileText, Activity, CreditCard, ChevronRight, Newspaper
 } from 'lucide-react';
 import { Project } from '../types';
 import { motion } from 'framer-motion';
@@ -20,7 +20,7 @@ import {
 } from 'recharts';
 
 export default function AdminDashboard() {
-  const { role, logout, displayName } = useUser();
+  const { role, logout, displayName, cmsNews, updateCmsNews } = useUser();
 
   // Middleware Guard: Verify client-side permissions
   const isAdminRole = role === 'admin' || role === 'super_admin' || role === 'support_admin' || role === 'finance_admin';
@@ -42,7 +42,19 @@ export default function AdminDashboard() {
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'projects' | 'users' | 'approvals' | 'cskh'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'projects' | 'users' | 'approvals' | 'cskh' | 'news'>('analytics');
+  
+  // News Management States
+  const [showNewsModal, setShowNewsModal] = useState(false);
+  const [editingNews, setEditingNews] = useState<string | null>(null);
+  const [newsForm, setNewsForm] = useState({
+    title: '',
+    category: 'Tin tức',
+    image: '',
+    date: '',
+    content: '',
+    author: 'Ban Biên Tập'
+  });
   
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -829,6 +841,15 @@ export default function AdminDashboard() {
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse"></span>
               )}
             </button>
+            <button 
+              onClick={() => setActiveTab('news')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all cursor-pointer relative ${
+                activeTab === 'news' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white'
+              }`}
+            >
+              <Newspaper className="w-5 h-5" />
+              Quản lý Tin tức
+            </button>
           </div>
 
           <div className="px-6 text-center text-[11px] text-zinc-650">
@@ -1508,6 +1529,108 @@ export default function AdminDashboard() {
           {activeTab === 'cskh' && (
             <AdminChatSupport />
           )}
+
+          {/* News Management Tab */}
+          {activeTab === 'news' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-[20px] font-bold font-['Montserrat'] text-[#ebd5ad] uppercase tracking-wide">Quản lý Tin tức</h2>
+                  <p className="text-xs text-zinc-500 font-sans mt-0.5">Thêm, sửa, hoặc xóa tin tức hiển thị tại luồng người dùng.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setEditingNews(null);
+                    setNewsForm({
+                      title: '',
+                      category: 'Tin tức',
+                      image: '',
+                      date: new Date().toLocaleDateString('vi-VN'),
+                      content: '',
+                      author: 'Ban Biên Tập'
+                    });
+                    setShowNewsModal(true);
+                  }}
+                  className="bg-[#c29b57] text-black px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#ebd5ad] active:scale-95 transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  Thêm Tin tức Mới
+                </button>
+              </div>
+
+              {/* News List Table */}
+              <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-sans text-zinc-350">
+                    <thead className="bg-zinc-950 text-zinc-400 font-bold uppercase tracking-wider text-[10px] border-b border-zinc-800">
+                      <tr>
+                        <th className="px-6 py-4">Hình ảnh</th>
+                        <th className="px-6 py-4">Tiêu đề</th>
+                        <th className="px-6 py-4">Chuyên mục</th>
+                        <th className="px-6 py-4">Ngày đăng</th>
+                        <th className="px-6 py-4 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/60">
+                      {cmsNews.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-zinc-500 font-medium">
+                            Chưa có tin tức nào được thêm. Hãy thêm tin tức đầu tiên!
+                          </td>
+                        </tr>
+                      ) : (
+                        cmsNews.map((newsItem: any, index: number) => (
+                          <tr key={newsItem.id || index} className="hover:bg-zinc-850/40 transition-colors">
+                            <td className="px-6 py-4">
+                              <img 
+                                src={newsItem.image || 'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?q=80&w=800'} 
+                                alt={newsItem.title} 
+                                className="w-12 h-12 object-cover rounded-lg border border-zinc-800"
+                              />
+                            </td>
+                            <td className="px-6 py-4 font-bold text-white max-w-xs truncate">
+                              {newsItem.title}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[10px] font-bold">
+                                {newsItem.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-zinc-450">
+                              {newsItem.date}
+                            </td>
+                            <td className="px-6 py-4 text-right space-x-2">
+                              <button 
+                                onClick={() => {
+                                  setEditingNews(newsItem.id);
+                                  setNewsForm({ ...newsItem });
+                                  setShowNewsModal(true);
+                                }}
+                                className="p-2 bg-zinc-800 text-zinc-300 hover:text-white rounded-lg transition-colors inline-flex items-center cursor-pointer"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  if (confirm("Bạn có chắc chắn muốn xóa tin tức này không?")) {
+                                    const updatedNews = cmsNews.filter((n: any) => n.id !== newsItem.id);
+                                    await updateCmsNews(updatedNews);
+                                  }
+                                }}
+                                className="p-2 bg-rose-950/40 text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 rounded-lg transition-colors inline-flex items-center cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -1974,6 +2097,116 @@ export default function AdminDashboard() {
               </div>
             </form>
           </motion.div>
+        </div>
+      )}
+      {/* News Add/Edit Modal */}
+      {showNewsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="bg-zinc-950 px-6 py-4 border-b border-zinc-800 flex justify-between items-center">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#ebd5ad]">
+                {editingNews ? 'Chỉnh sửa Tin tức' : 'Thêm Tin tức Mới'}
+              </h3>
+              <button 
+                onClick={() => setShowNewsModal(false)}
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 font-sans text-xs">
+              <div className="space-y-1.5">
+                <label className="text-zinc-450 font-bold">Tiêu đề tin tức</label>
+                <input 
+                  type="text"
+                  value={newsForm.title}
+                  onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+                  placeholder="Nhập tiêu đề tin tức"
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-zinc-450 font-bold">Chuyên mục</label>
+                  <input 
+                    type="text"
+                    value={newsForm.category}
+                    onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
+                    placeholder="Ví dụ: Tin tức VinFast, Ưu đãi..."
+                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-zinc-450 font-bold">Tác giả</label>
+                  <input 
+                    type="text"
+                    value={newsForm.author}
+                    onChange={(e) => setNewsForm({ ...newsForm, author: e.target.value })}
+                    placeholder="Ví dụ: Ban Biên Tập"
+                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-zinc-450 font-bold">URL Hình ảnh</label>
+                <input 
+                  type="text"
+                  value={newsForm.image}
+                  onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
+                  placeholder="Dán link ảnh (https://...)"
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-zinc-450 font-bold">Nội dung tin tức</label>
+                <textarea 
+                  value={newsForm.content}
+                  onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                  placeholder="Nhập nội dung chi tiết..."
+                  rows={6}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors resize-none font-sans"
+                />
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 p-4 border-t border-zinc-800 flex gap-3 shrink-0">
+              <button 
+                onClick={() => setShowNewsModal(false)}
+                className="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-850 transition-all cursor-pointer text-center"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!newsForm.title || !newsForm.content) {
+                    alert("Vui lòng nhập đầy đủ tiêu đề và nội dung tin tức!");
+                    return;
+                  }
+                  let updatedNewsList = [...cmsNews];
+                  if (editingNews) {
+                    updatedNewsList = updatedNewsList.map((n: any) => 
+                      n.id === editingNews ? { ...n, ...newsForm } : n
+                    );
+                  } else {
+                    const newNewsItem = {
+                      id: `news-${Date.now()}`,
+                      ...newsForm
+                    };
+                    updatedNewsList = [newNewsItem, ...updatedNewsList];
+                  }
+                  await updateCmsNews(updatedNewsList);
+                  setShowNewsModal(false);
+                }}
+                className="flex-1 bg-[#c29b57] text-black py-3 rounded-xl font-bold hover:bg-[#ebd5ad] transition-all cursor-pointer text-center"
+              >
+                Lưu tin tức
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

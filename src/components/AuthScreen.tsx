@@ -118,6 +118,14 @@ export default function AuthScreen() {
       setErrorMsg('Nhập lại mật khẩu không trùng khớp.');
       return;
     }
+    if (!regReferral.trim()) {
+      setErrorMsg('Mã giới thiệu là bắt buộc để đăng ký.');
+      return;
+    }
+    if (regReferral.trim().toUpperCase() !== 'V-ECO') {
+      setErrorMsg('Mã giới thiệu không đúng. Vui lòng sử dụng mã "V-ECO".');
+      return;
+    }
 
     setIsLoading(true);
     try {
