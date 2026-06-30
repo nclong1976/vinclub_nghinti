@@ -2155,7 +2155,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       profit: p.interestRate.replace('%', '').trim(),
       minCapital: p.minAmount,
       progress: p.progress,
-      status: p.status || 'ACTIVE'
+      status: p.status || 'ACTIVE',
+      imageUrl: p.imageUrl,
+      description: p.description,
+      minInvestAmount: p.minInvestAmount,
+      interestRateValue: p.interestRateValue,
+      scale: p.scale
     }));
 
   return (

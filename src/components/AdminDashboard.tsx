@@ -93,6 +93,7 @@ export default function AdminDashboard() {
   // Transaction Approvals States
   const [approvalFilter, setApprovalFilter] = useState<'all' | 'deposit' | 'withdraw'>('all');
   const [selectedBillImage, setSelectedBillImage] = useState<string | null>(null);
+  const [approvalSubTab, setApprovalSubTab] = useState<'transactions' | 'kyc'>('transactions');
 
   // Support Chat States
   const [chatThreads, setChatThreads] = useState<any[]>([]);
@@ -496,6 +497,54 @@ export default function AdminDashboard() {
       await logAdminAction(`${isLocked ? 'Khóa (Ban)' : 'Mở khóa (Unban)'} tài khoản của hội viên "${u.displayName || u.id}"`);
     } catch (err) {
       console.error("Error locking user:", err);
+    }
+  };
+
+  const approveKyc = async (user: any) => {
+    try {
+      const userRef = doc(db, 'users', user.id);
+      const updates: any = {
+        kycStatus: 'verified',
+        isIdentityVerified: true
+      };
+      if (!user.hasReceivedWelcomeVoucher) {
+        updates.hasReceivedWelcomeVoucher = true;
+        updates.balance = (user.balance || 0) + 50000;
+        
+        const newTx = {
+          id: 'welcome-voucher-' + Date.now(),
+          type: 'bonus',
+          amount: 50000,
+          date: new Date().toLocaleDateString('vi-VN'),
+          status: 'Thành công',
+          note: 'Nhận Welcome Voucher sau khi xác thực tài khoản thành công',
+          timestamp: new Date().toISOString()
+        };
+        updates.transactions = [newTx, ...(user.transactions || [])];
+      }
+      await updateDoc(userRef, updates);
+      await logAdminAction(`Phê duyệt KYC thành công cho hội viên: ${user.displayName || user.id}`);
+      alert("Đã phê duyệt KYC thành công!");
+    } catch (err) {
+      console.error("Error approving KYC:", err);
+      alert("Không phê duyệt được KYC!");
+    }
+  };
+
+  const rejectKyc = async (user: any) => {
+    const reason = prompt("Nhập lý do từ chối KYC (ví dụ: Ảnh mờ, sai thông tin...):");
+    if (reason === null) return;
+    try {
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        kycStatus: 'rejected',
+        kycRejectReason: reason || 'Hình ảnh không hợp lệ'
+      });
+      await logAdminAction(`Từ chối KYC của hội viên ${user.displayName || user.id} với lý do: ${reason}`);
+      alert("Đã từ chối KYC.");
+    } catch (err) {
+      console.error("Error rejecting KYC:", err);
+      alert("Không từ chối được KYC!");
     }
   };
 
@@ -1228,126 +1277,230 @@ export default function AdminDashboard() {
           {/* Transaction Approvals Tab */}
           {activeTab === 'approvals' && (
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-4 gap-4">
-                <div>
-                  <h2 className="text-[20px] font-bold font-['Montserrat'] text-[#ebd5ad] uppercase tracking-wide">Phê duyệt Nạp & Rút tiền</h2>
-                  <p className="text-[12px] text-zinc-400 mt-1 font-medium">Xét duyệt hồ sơ minh chứng hóa đơn nạp và khấu trừ giải ngân rút tiền</p>
-                </div>
-
-                {/* Filter Selector */}
-                <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-fit self-start md:self-auto">
-                  <button 
-                    onClick={() => setApprovalFilter('all')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalFilter === 'all' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-                  >
-                    Tất cả ({pendingTransactions.length})
-                  </button>
-                  <button 
-                    onClick={() => setApprovalFilter('deposit')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalFilter === 'deposit' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-                  >
-                    Yêu cầu Nạp ({pendingTransactions.filter(t => t.type === 'deposit').length})
-                  </button>
-                  <button 
-                    onClick={() => setApprovalFilter('withdraw')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalFilter === 'withdraw' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-                  >
-                    Yêu cầu Rút ({pendingTransactions.filter(t => t.type === 'withdraw').length})
-                  </button>
-                </div>
+              {/* Approval Sub-tab selector */}
+              <div className="flex bg-zinc-950 border border-zinc-850 p-1 rounded-xl w-fit">
+                <button 
+                  onClick={() => setApprovalSubTab('transactions')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalSubTab === 'transactions' ? 'bg-[#c29b57] text-black shadow-md font-extrabold' : 'text-zinc-450 hover:text-white'}`}
+                >
+                  Phê duyệt Nạp & Rút
+                </button>
+                <button 
+                  onClick={() => setApprovalSubTab('kyc')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalSubTab === 'kyc' ? 'bg-[#c29b57] text-black shadow-md font-extrabold' : 'text-zinc-450 hover:text-white'}`}
+                >
+                  Phê duyệt KYC ({users.filter(u => u.kycStatus === 'pending').length})
+                </button>
               </div>
 
-              {/* Approvals Table */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-zinc-950/70 text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-zinc-850">
-                        <th className="px-5 py-4">Hội viên</th>
-                        <th className="px-5 py-4">Loại giao dịch</th>
-                        <th className="px-5 py-4">Số tiền giao dịch</th>
-                        <th className="px-5 py-4">Chi tiết / Chứng từ</th>
-                        <th className="px-5 py-4">Thời gian</th>
-                        <th className="px-5 py-4 text-right">Thao tác duyệt</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-850 text-xs text-zinc-300 font-medium">
-                      {filteredApprovals.map(t => (
-                        <tr key={t.id} className="hover:bg-zinc-850/20 transition-colors">
-                          <td className="px-5 py-4">
-                            <div className="font-bold text-zinc-100">{t.user?.displayName || 'Không tên'}</div>
-                            <div className="text-[10px] text-zinc-500 mt-0.5">SĐT: {t.user?.phoneNumber || 'N/A'}</div>
-                          </td>
-                          <td className="px-5 py-4">
-                            {t.type === 'deposit' ? (
-                              <span className="bg-emerald-950 text-emerald-450 border border-emerald-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                NẠP TIỀN
-                              </span>
-                            ) : (
-                              <span className="bg-rose-950 text-rose-450 border border-rose-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                RÚT TIỀN
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 font-bold text-zinc-100 text-sm">
-                            {(t.amount || 0).toLocaleString('vi-VN')} VNĐ
-                          </td>
-                          <td className="px-5 py-4">
-                            {t.type === 'deposit' ? (
-                              t.proofImage ? (
-                                <button 
-                                  onClick={() => setSelectedBillImage(t.proofImage)}
-                                  className="text-[#c29b57] hover:underline font-bold flex items-center gap-1.5"
-                                >
-                                  📄 Xem hóa đơn ảnh
-                                </button>
-                              ) : (
-                                <span className="text-zinc-500">Không có ảnh bill</span>
-                              )
-                            ) : (
-                              t.user?.bankInfo ? (
-                                <div className="space-y-0.5 bg-zinc-950 p-2.5 rounded-lg border border-zinc-850 text-[11px] font-mono leading-tight max-w-[220px]">
-                                  <div>Ngân hàng: <strong>{t.user.bankInfo.bankName}</strong></div>
-                                  <div>Số TK: <strong>{t.user.bankInfo.bankAccount}</strong></div>
-                                  <div>Chủ thẻ: <strong>{t.user.bankInfo.cardHolder}</strong></div>
+              {approvalSubTab === 'transactions' ? (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-4 gap-4">
+                    <div>
+                      <h2 className="text-[20px] font-bold font-['Montserrat'] text-[#ebd5ad] uppercase tracking-wide">Phê duyệt Nạp & Rút tiền</h2>
+                      <p className="text-[12px] text-zinc-400 mt-1 font-medium">Xét duyệt hồ sơ minh chứng hóa đơn nạp và khấu trừ giải ngân rút tiền</p>
+                    </div>
+
+                    {/* Filter Selector */}
+                    <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-fit self-start md:self-auto">
+                      <button 
+                        onClick={() => setApprovalFilter('all')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalFilter === 'all' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-440 hover:text-white'}`}
+                      >
+                        Tất cả ({pendingTransactions.length})
+                      </button>
+                      <button 
+                        onClick={() => setApprovalFilter('deposit')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalFilter === 'deposit' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-440 hover:text-white'}`}
+                      >
+                        Yêu cầu Nạp ({pendingTransactions.filter(t => t.type === 'deposit').length})
+                      </button>
+                      <button 
+                        onClick={() => setApprovalFilter('withdraw')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${approvalFilter === 'withdraw' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-440 hover:text-white'}`}
+                      >
+                        Yêu cầu Rút ({pendingTransactions.filter(t => t.type === 'withdraw').length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Approvals Table */}
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-zinc-950/70 text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-zinc-850">
+                            <th className="px-5 py-4">Hội viên</th>
+                            <th className="px-5 py-4">Loại giao dịch</th>
+                            <th className="px-5 py-4">Số tiền giao dịch</th>
+                            <th className="px-5 py-4">Chi tiết / Chứng từ</th>
+                            <th className="px-5 py-4">Thời gian</th>
+                            <th className="px-5 py-4 text-right">Thao tác duyệt</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-850 text-xs text-zinc-300 font-medium">
+                          {filteredApprovals.map(t => (
+                            <tr key={t.id} className="hover:bg-zinc-850/20 transition-colors">
+                              <td className="px-5 py-4">
+                                <div className="font-bold text-zinc-100">{t.user?.displayName || 'Không tên'}</div>
+                                <div className="text-[10px] text-zinc-500 mt-0.5">SĐT: {t.user?.phoneNumber || 'N/A'}</div>
+                              </td>
+                              <td className="px-5 py-4">
+                                {t.type === 'deposit' ? (
+                                  <span className="bg-emerald-950 text-emerald-450 border border-emerald-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                    NẠP TIỀN
+                                  </span>
+                                ) : (
+                                  <span className="bg-rose-950 text-rose-450 border border-rose-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                    RÚT TIỀN
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4 font-bold text-zinc-100 text-sm">
+                                {(t.amount || 0).toLocaleString('vi-VN')} VNĐ
+                              </td>
+                              <td className="px-5 py-4">
+                                {t.type === 'deposit' ? (
+                                  t.proofImage ? (
+                                    <button 
+                                      onClick={() => setSelectedBillImage(t.proofImage)}
+                                      className="text-[#c29b57] hover:underline font-bold flex items-center gap-1.5"
+                                    >
+                                      📄 Xem hóa đơn ảnh
+                                    </button>
+                                  ) : (
+                                    <span className="text-zinc-500">Không có ảnh bill</span>
+                                  )
+                                ) : (
+                                  t.user?.bankInfo ? (
+                                    <div className="space-y-0.5 bg-zinc-950 p-2.5 rounded-lg border border-zinc-850 text-[11px] font-mono leading-tight max-w-[220px]">
+                                      <div>Ngân hàng: <strong>{t.user.bankInfo.bankName}</strong></div>
+                                      <div>Số TK: <strong>{t.user.bankInfo.bankAccount}</strong></div>
+                                      <div>Chủ thẻ: <strong>{t.user.bankInfo.cardHolder}</strong></div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-rose-450 font-bold">Chưa liên kết ngân hàng</span>
+                                  )
+                                )}
+                              </td>
+                              <td className="px-5 py-4 text-zinc-400 font-mono text-[10px]">
+                                {t.date}
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button 
+                                    onClick={() => handleApproveTransaction(t.user.id, t.id, t.type, t.amount)}
+                                    className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700/80 font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 flex items-center gap-1"
+                                  >
+                                    <Check className="w-3.5 h-3.5" /> Duyệt
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRejectTransaction(t.user.id, t.id, t.type, t.amount)}
+                                    className="bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-800/80 font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 flex items-center gap-1"
+                                  >
+                                    <X className="w-3.5 h-3.5" /> Từ chối
+                                  </button>
                                 </div>
-                              ) : (
-                                <span className="text-rose-450 font-bold">Chưa liên kết ngân hàng</span>
-                              )
-                            )}
-                          </td>
-                          <td className="px-5 py-4 text-zinc-400 font-mono text-[10px]">
-                            {t.date}
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button 
-                                onClick={() => handleApproveTransaction(t.user.id, t.id, t.type, t.amount)}
-                                className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700/80 font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 flex items-center gap-1"
-                              >
-                                <Check className="w-3.5 h-3.5" /> Duyệt
-                              </button>
-                              <button 
-                                onClick={() => handleRejectTransaction(t.user.id, t.id, t.type, t.amount)}
-                                className="bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-800/80 font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 flex items-center gap-1"
-                              >
-                                <X className="w-3.5 h-3.5" /> Từ chối
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {filteredApprovals.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="px-5 py-12 text-center text-zinc-500 font-bold">
-                            🎉 Hoàn thành! Không có yêu cầu nạp/rút tiền nào đang chờ duyệt.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                              </td>
+                            </tr>
+                          ))}
+                          {filteredApprovals.length === 0 && (
+                            <tr>
+                              <td colSpan={6} className="px-5 py-12 text-center text-zinc-500 font-bold">
+                                🎉 Hoàn thành! Không có yêu cầu nạp/rút tiền nào đang chờ duyệt.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="border-b border-zinc-800 pb-4">
+                    <h2 className="text-[20px] font-bold font-['Montserrat'] text-[#ebd5ad] uppercase tracking-wide">Yêu cầu xác thực KYC</h2>
+                    <p className="text-[12px] text-zinc-400 mt-1 font-medium">Xét duyệt thông tin và hình ảnh CCCD/Hộ chiếu do hội viên cung cấp</p>
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-zinc-950/70 text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-zinc-850">
+                            <th className="px-5 py-4">Hội viên</th>
+                            <th className="px-5 py-4">Mã số CCCD / Hộ chiếu</th>
+                            <th className="px-5 py-4">Ảnh mặt trước</th>
+                            <th className="px-5 py-4">Ảnh mặt sau</th>
+                            <th className="px-5 py-4 text-right">Thao tác duyệt</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-850 text-xs text-zinc-300 font-medium">
+                          {users.filter(u => u.kycStatus === 'pending').map(u => (
+                            <tr key={u.id} className="hover:bg-zinc-850/20 transition-colors">
+                              <td className="px-5 py-4">
+                                <div className="font-bold text-zinc-100">{u.displayName || 'Không tên'}</div>
+                                <div className="text-[10px] text-zinc-500 mt-0.5">Email: {u.email || u.id}</div>
+                                <div className="text-[10px] text-zinc-500 mt-0.5">SĐT: {u.phoneNumber || 'N/A'}</div>
+                              </td>
+                              <td className="px-5 py-4 font-mono font-bold text-zinc-100 text-sm">
+                                {u.cccd || 'Chưa cung cấp số'}
+                              </td>
+                              <td className="px-5 py-4">
+                                {u.cccdFrontImage ? (
+                                  <img 
+                                    src={u.cccdFrontImage} 
+                                    alt="Front" 
+                                    onClick={() => setSelectedBillImage(u.cccdFrontImage)}
+                                    className="h-10 w-16 object-cover rounded border border-zinc-700 cursor-pointer hover:opacity-80" 
+                                  />
+                                ) : (
+                                  <span className="text-zinc-650 italic">Không có ảnh</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4">
+                                {u.cccdBackImage ? (
+                                  <img 
+                                    src={u.cccdBackImage} 
+                                    alt="Back" 
+                                    onClick={() => setSelectedBillImage(u.cccdBackImage)}
+                                    className="h-10 w-16 object-cover rounded border border-zinc-700 cursor-pointer hover:opacity-80" 
+                                  />
+                                ) : (
+                                  <span className="text-zinc-650 italic">Không có ảnh</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <button 
+                                    onClick={() => approveKyc(u)}
+                                    className="bg-emerald-900/60 border border-emerald-800 hover:bg-emerald-900 text-emerald-300 font-extrabold text-[10px] px-3 py-1.5 rounded-lg cursor-pointer transition-all uppercase tracking-wider active:scale-95"
+                                  >
+                                    Phê duyệt
+                                  </button>
+                                  <button 
+                                    onClick={() => rejectKyc(u)}
+                                    className="bg-rose-950/60 border border-rose-900 hover:bg-rose-900 text-rose-350 font-extrabold text-[10px] px-3 py-1.5 rounded-lg cursor-pointer transition-all uppercase tracking-wider active:scale-95"
+                                  >
+                                    Từ chối
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {users.filter(u => u.kycStatus === 'pending').length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 italic">
+                                Không có yêu cầu KYC nào đang chờ duyệt.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

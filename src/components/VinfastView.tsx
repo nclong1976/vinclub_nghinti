@@ -36,28 +36,26 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
   const [showInvestModal, setShowInvestModal] = useState<boolean>(false);
   const [showContractPreview, setShowContractPreview] = useState<boolean>(false);
 
-  const vinfastCars = (cmsVinfast || []).map((car: any) => ({
-    id: car.title,
-    title: car.title,
-    image: `https://vinfastauto.com/themes/porto/img/homepage-v2/car/${car.title.replace(' ', '')}.webp`,
-    type: 'Electric Vehicle',
-    seats: '5',
-    range: '400 km',
-    promoPrice: 1000000000,
-    originalPrice: 1100000000,
-    badge: 'Đầu tư',
-    dailyYield: `${car.profit}%`,
-    dailyYieldValue: parseFloat(car.profit) / 100,
-    minInvest: parseFloat(car.minCapital.replace(/\./g, '')),
-    desc: `Dòng xe ${car.title} hiện đại.`,
-    status: car.status || 'ACTIVE',
-    progress: car.progress !== undefined ? car.progress : (
-      car.title === 'VF 3' ? 72 :
-      car.title === 'VF 7' ? 48 :
-      car.title === 'VF 8' ? 65 :
-      car.title === 'VF 9' ? 83 : 50
-    )
-  }));
+  const vinfastCars = (cmsVinfast || []).map((car: any) => {
+    const dailyYieldStr = car.profit.includes('%') ? car.profit : `${car.profit}%`;
+    return {
+      id: car.title,
+      title: car.title,
+      image: car.imageUrl || `https://vinfastauto.com/themes/porto/img/homepage-v2/car/${car.title.replace(' ', '')}.webp`,
+      type: 'Electric Vehicle',
+      seats: '5',
+      range: '400 km',
+      promoPrice: 1000000000,
+      originalPrice: 1100000000,
+      badge: 'Đầu tư',
+      dailyYield: dailyYieldStr,
+      dailyYieldValue: car.interestRateValue !== undefined ? car.interestRateValue : parseFloat(car.profit) / 100,
+      minInvest: car.minInvestAmount !== undefined ? car.minInvestAmount : (car.minCapital ? parseFloat(car.minCapital.replace(/\./g, '')) : 15000000),
+      desc: car.description || `Dòng xe ${car.title} hiện đại.`,
+      status: car.status || 'ACTIVE',
+      progress: car.progress !== undefined ? car.progress : 50
+    };
+  });
 
   const selectedCar = vinfastCars.find(c => c.id === activeCarId) || vinfastCars[0];
 
