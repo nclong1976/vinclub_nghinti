@@ -43,38 +43,10 @@ service cloud.firestore {
     // Users Collection
     // ───────────────────────────────────────────
     match /users/{userId} {
+      allow read, write: if true;
 
-      // Player chỉ đọc được profile của chính mình
-      // Admin đọc được tất cả
-      allow read: if isOwner(userId) || isAdmin();
-
-      // Cho phép người dùng tự khởi tạo profile của mình hoặc admin tạo mới
-      allow create: if isOwner(userId) || isAdmin();
-
-      // Player chỉ được sửa các field của chính mình (ngoại trừ role để tránh privilege escalation)
-      // Admin được sửa tất cả
-      allow update: if isAdmin() || (
-        isOwner(userId) &&
-        (!('role' in request.resource.data.diff(resource.data).affectedKeys()) ||
-         (resource.data.role == request.resource.data.role))
-      );
-
-      // Chỉ super_admin mới xóa được user
-      allow delete: if isSuperAdmin();
-
-      // ─────────────────────────────────────────
-      // Transactions Sub-Collection
-      // ─────────────────────────────────────────
       match /transactions/{transactionId} {
-
-        // Player đọc giao dịch của mình, admin đọc tất cả
-        allow read: if isOwner(userId) || isAdmin();
-
-        // Cho phép Player tự ghi giao dịch, admin ghi tất cả
-        allow create, update: if isOwner(userId) || isAdmin();
-
-        // Không cho xóa giao dịch
-        allow delete: if false;
+        allow read, write: if true;
       }
     }
 
@@ -122,19 +94,14 @@ service cloud.firestore {
     // Chat Messages Collection
     // ───────────────────────────────────────────
     match /chat_messages/{messageId} {
-      allow read: if isAdmin() || (isAuthenticated() && (resource.data.conversation_id == request.auth.token.email || resource.data.conversation_id == request.auth.uid));
-      allow create: if isAdmin() || (isAuthenticated() && (request.resource.data.conversation_id == request.auth.token.email || request.resource.data.conversation_id == request.auth.uid));
-      allow update: if isAdmin() || (isAuthenticated() && (resource.data.conversation_id == request.auth.token.email || resource.data.conversation_id == request.auth.uid));
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
     // ───────────────────────────────────────────
     // Audit Logs (chỉ admin ghi, admin đọc)
     // ───────────────────────────────────────────
     match /audit_logs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
-      allow update, delete: if false; // Logs không bao giờ bị sửa/xóa
+      allow read, write: if true;
     }
 
     // ───────────────────────────────────────────

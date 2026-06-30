@@ -1,9 +1,10 @@
 {
-  "projectId": "vinclub-e1bb4",
-  "appId": "1:341248024780:web:04d1a460a86987d7766269",
-  "apiKey": "AIzaSyCSJX1n2K3SFPUiKX9j83XUq9-0oj5fl7E",
-  "authDomain": "vinclub-e1bb4.firebaseapp.com",
-  "storageBucket": "vinclub-e1bb4.firebasestorage.app",
-  "messagingSenderId": "341248024780",
-  "measurementId": ""
+  "projectId": "vinclubcorona",
+  "appId": "1:651016830984:web:99f68cf5c56b52e17611bd",
+  "apiKey": "AIzaSyDNeEH1YeXYHaJQO1xDFMtNteOInvKbKhg",
+  "authDomain": "vinclubcorona.firebaseapp.com",
+  "storageBucket": "vinclubcorona.firebasestorage.app",
+  "messagingSenderId": "651016830984",
+  "measurementId": "G-8MN37KCEQD",
+  "databaseURL": "https://vinclubcorona-default-rtdb.asia-southeast1.firebasedatabase.app"
 }

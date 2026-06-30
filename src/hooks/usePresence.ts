@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { rtdb, rtdbAuth } from "../lib/firebase";
+import { rtdb } from "../lib/firebase";
 import { ref, set, onDisconnect, onValue, off } from "firebase/database";
+import { useUser } from "../components/UserContext";
 
 /**
  * Gọi hook này ở component gốc (App.tsx) sau khi user đã login.
@@ -9,13 +10,14 @@ import { ref, set, onDisconnect, onValue, off } from "firebase/database";
  *   - Set status = "offline" ngay lập tức khi mất kết nối (qua Firebase server)
  */
 export function usePresence() {
-  useEffect(() => {
-    const user = rtdbAuth.currentUser;
-    if (!user) return;
+  const { userId } = useUser();
 
-    const uid = user.uid;
-    const userStatusRef = ref(rtdb, `users/${uid}/status`);
-    // Nánh ".info/connected" là built-in của Firebase RTDB
+  useEffect(() => {
+    if (!userId || userId === 'profile') return;
+
+    const safeUserId = userId.replace(/[\.\#\$\[\]]/g, "_");
+    const userStatusRef = ref(rtdb, `users/${safeUserId}/status`);
+    // Nhánh ".info/connected" là built-in của Firebase RTDB
     const connectedRef = ref(rtdb, ".info/connected");
 
     const unsubscribe = onValue(connectedRef, (snapshot) => {
@@ -27,6 +29,10 @@ export function usePresence() {
       }
     });
 
-    return () => off(connectedRef, "value", unsubscribe);
-  }, []);
+    return () => {
+      off(connectedRef, "value", unsubscribe);
+      // Ghi offline khi unmount hoặc log out
+      set(userStatusRef, "offline").catch(console.error);
+    };
+  }, [userId]);
 }

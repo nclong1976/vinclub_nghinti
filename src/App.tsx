@@ -30,6 +30,7 @@ import VinpearlInvestView from './components/VinpearlInvestView';
 import CardRankingView from './components/CardRankingView';
 import AllNewsView from './components/AllNewsView';
 import AdminDashboard from './components/AdminDashboard';
+import { usePresence } from './hooks/usePresence';
 
 export type ViewState = 'home' | 'projects' | 'stockList' | 'stockDetail' | 'casino' | 'profile' | 'cskh' | 'vinfast' | 'welfare_consultation' | 'news_detail' | 'investment_reasons' | 'welfare_resort' | 'welfare_education' | 'welfare_medical' | 'welfare_shopping' | 'welfare_vinhomes' | 'vinpearl_projects' | 'vinpearl_project_detail' | 'vinpearl_invest' | 'all_news' | 'cardRanking';
 
@@ -38,6 +39,9 @@ export default function App() {
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const { isEditMode, setIsEditMode } = useImage();
   const { isLoggedIn, getAdjustedStocks, role } = useUser();
+
+  // Call hook to track user presence (online/offline) in RTDB
+  usePresence();
 
   // Interactive modal states
   const [profileSubView, setProfileSubView] = useState<string | null>(null);

@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection, query, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Stock, PortfolioItem, Order, Project, AuditLogEntry, CasinoGame } from '../types';
+import { ref, set, update, serverTimestamp } from 'firebase/database';
+import { rtdb } from '../lib/firebase';
 
 export type Transaction = {
   id: string;
@@ -883,12 +885,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [isLoggedIn, userId, interestRate, systemInstructions, balance, lastInterestPaidDate]);
 
+  // Sync user profile to Realtime Database for Admin CSKH
+  useEffect(() => {
+    if (isLoggedIn && userId && userId !== 'profile') {
+      const safeUserId = userId.replace(/[\.\#\$\[\]]/g, "_");
+      const userRef = ref(rtdb, `users/${safeUserId}`);
+      update(userRef, {
+        uid: safeUserId,
+        email: userId,
+        displayName: displayName || userId
+      }).catch(err => console.error("Error syncing user to RTDB:", err));
+    }
+  }, [isLoggedIn, userId, displayName]);
+
   const handleSetName = async (val: string) => {
     const activeId = userId || 'profile';
     setDisplayNameState(val);
     localStorage.setItem(`user-display-name-${activeId}`, val);
     try {
       await setDoc(doc(db, 'users', activeId), { displayName: val }, { merge: true });
+      if (activeId !== 'profile') {
+        const safeUserId = activeId.replace(/[\.\#\$\[\]]/g, "_");
+        await update(ref(rtdb, `users/${safeUserId}`), { displayName: val });
+      }
     } catch (e) {
       console.error("Error setting name in Firestore:", e);
     }
@@ -1914,6 +1933,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           referralCode: referralCode || ''
         };
         await setDoc(docRef, initialProfile);
+
+        // Sync to Realtime Database
+        try {
+          const safeUserId = activeId.replace(/[\.\#\$\[\]]/g, "_");
+          await set(ref(rtdb, `users/${safeUserId}`), {
+            uid: safeUserId,
+            email: activeId,
+            displayName,
+            createdAt: serverTimestamp(),
+            status: 'online'
+          });
+        } catch (rtdbErr) {
+          console.error("Error writing user to Realtime Database on registration:", rtdbErr);
+        }
 
         // Populate local storage values
         localStorage.setItem(`user-display-name-${activeId}`, displayName);

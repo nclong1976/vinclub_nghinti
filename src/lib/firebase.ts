@@ -7,10 +7,10 @@ import firebaseConfig from "../../firebase-applet-config.json";
 const app = getApps().length === 0
   ? initializeApp({
       ...firebaseConfig,
-      databaseURL: `https://vinclub-e1bb4-default-rtdb.asia-southeast1.firebasedatabase.app`,
+      databaseURL: `https://vinclubcorona-default-rtdb.asia-southeast1.firebasedatabase.app`,
     })
   : getApps()[0];
 
-export const rtdb = getDatabase(app);
+export const rtdb = getDatabase(app, "https://vinclubcorona-default-rtdb.asia-southeast1.firebasedatabase.app");
 export const rtdbAuth = getAuth(app);
 export default app;
