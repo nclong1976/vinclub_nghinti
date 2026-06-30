@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Home, Percent, Award, ShieldCheck, ChevronRight, MapPin, Star, Sparkles, X, Check } from 'lucide-react';
+import React, { useState, useContext } from 'react';
+import { ArrowLeft, Home, Percent, Award, ShieldCheck, ChevronRight, MapPin, Star, Sparkles, X, Check, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
+import { UserContext } from './UserContext';
 
 interface WelfareVinhomesViewProps {
   onBack: () => void;
@@ -9,97 +10,19 @@ interface WelfareVinhomesViewProps {
 export default function WelfareVinhomesView({ onBack }: WelfareVinhomesViewProps) {
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const { standardProjects } = useContext(UserContext);
 
-  const vinhomesProjects = [
-    {
-      id: 'vh-royal-island',
-      title: 'Vinhomes Royal Island',
-      location: 'Vũ Yên, Hải Phòng',
-      description: 'Đảo hoàng gia đầu tiên tại Việt Nam sở hữu sân golf 36 hố, bến du thuyền cao cấp và học viện cưỡi ngựa đẳng cấp quốc tế.',
-      image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=800',
-      highlights: ['Sân golf 36 hố', 'Bến du thuyền', 'Học viện cưỡi ngựa']
-    },
-    {
-      id: 'vh-ocean-park-1',
-      title: 'Vinhomes Ocean Park 1',
-      location: 'Gia Lâm, Hà Nội',
-      description: 'Đại đô thị "Thành phố biển hồ" với biển hồ nước mặn 6.1 ha và hồ ngọc trai cát trắng 24.5 ha rộng lớn.',
-      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
-      highlights: ['Biển hồ nước mặn', 'Hồ ngọc trai', 'Bãi cát trắng']
-    },
-    {
-      id: 'vh-ocean-park-2',
-      title: 'Vinhomes Ocean Park 2',
-      location: 'Văn Giang, Hưng Yên',
-      description: 'Siêu quần thể đô thị biển quy mô 458 ha với tổ hợp công viên nước tạo sóng Wave Park lớn nhất thế giới.',
-      image: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=800',
-      highlights: ['Royal Wave Park', 'Công viên sóng', 'Đại lộ Kinh Đô']
-    },
-    {
-      id: 'vh-ocean-park-3',
-      title: 'Vinhomes Ocean Park 3',
-      location: 'Văn Giang, Hưng Yên',
-      description: 'Vịnh biển thượng lưu sở hữu hồ nước mặn bốn mùa trong nhà, công viên sóng biển khổng lồ đẳng cấp.',
-      image: 'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?q=80&w=800',
-      highlights: ['Vịnh biển 4 mùa', 'Hồ bơi nước mặn', 'Vịnh Tây Ban Nha']
-    },
-    {
-      id: 'vh-grand-park',
-      title: 'Vinhomes Grand Park',
-      location: 'Quận 9, TP. HCM',
-      description: 'Đại đô thị thông minh đẳng cấp quốc tế tại trung tâm mới của TP.HCM sở hữu đại công viên 36 ha.',
-      image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=800',
-      highlights: ['Công viên 36 ha', 'Đô thị thông minh', 'The Rainbow']
-    },
-    {
-      id: 'vh-smart-city',
-      title: 'Vinhomes Smart City',
-      location: 'Nam Từ Liêm, Hà Nội',
-      description: 'Đô thị thông minh năng động phong cách Singapore tại cửa ngõ phía Tây thủ đô với kết nối AI toàn diện.',
-      image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800',
-      highlights: ['Vườn Nhật 6.1 ha', 'An ninh AI', 'Smart Home']
-    },
-    {
-      id: 'vh-golden-river',
-      title: 'Vinhomes Golden River',
-      location: 'Ba Son, Quận 1, TP. HCM',
-      description: 'Khu đô thị sinh thái ven sông siêu sang trọng bậc nhất Sài Gòn tọa lạc tại mảnh đất Ba Son lịch sử.',
-      image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=800',
-      highlights: ['Vị trí Quận 1', 'Sát ga Metro', 'Bến du thuyền Ba Son']
-    },
-    {
-      id: 'vh-central-park',
-      title: 'Vinhomes Central Park',
-      location: 'Bình Thạnh, TP. HCM',
-      description: 'Lấy cảm hứng từ Central Park New York với tòa tháp cao nhất Việt Nam Landmark 81 sừng sững.',
-      image: 'https://images.unsplash.com/photo-1508962914676-134849a727f0?q=80&w=800',
-      highlights: ['Landmark 81', 'Công viên ven sông', 'Biệt thự biệt lập']
-    },
-    {
-      id: 'vh-riverside',
-      title: 'Vinhomes Riverside',
-      location: 'Long Biên, Hà Nội',
-      description: 'Khu đô thị sinh thái biệt thự ven sông mang đậm phong cách Venice sang trọng, thanh bình và an ninh nghiêm ngặt.',
-      image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=800',
-      highlights: ['Kênh đào sinh thái', 'Phong cách Venice', 'Clubhouse cao cấp']
-    },
-    {
-      id: 'vh-times-city',
-      title: 'Vinhomes Times City',
-      location: 'Hai Bà Trưng, Hà Nội',
-      description: 'Khu đô thị kiểu mẫu với thủy cung hiện đại Vinpearl, nhạc nước hoành tráng và bệnh viện Vinmec cao cấp.',
-      image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800',
-      highlights: ['Thủy cung hiện đại', 'Nhạc nước quảng trường', 'Vinschool liên cấp']
-    },
-    {
-      id: 'vh-royal-city',
-      title: 'Vinhomes Royal City',
-      location: 'Thanh Xuân, Hà Nội',
-      description: '"Thành phố hoàng gia" mang phong cách kiến trúc châu Âu cổ điển quý phái với quảng trường rộng lớn.',
-      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800',
-      highlights: ['Kiến trúc Hoàng Gia', 'Sân băng trong nhà', 'Royal Mega Mall']
-    }
-  ];
+  const vinhomesProjects = standardProjects
+    .filter(p => p.category === 'Vinhomes')
+    .map(p => ({
+      id: p.id,
+      title: p.title,
+      location: p.location || 'Hà Nội',
+      description: p.description || '',
+      image: p.imageUrl,
+      highlights: p.highlights || ['Premium Layout', 'Vinhomes Quality'],
+      status: p.status || 'ACTIVE'
+    }));
 
   const handleRegister = () => {
     setSubmitted(true);
@@ -215,6 +138,13 @@ export default function WelfareVinhomesView({ onBack }: WelfareVinhomesViewProps
                     alt={project.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
                   />
+                  {project.status === 'CLOSED' && (
+                    <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center">
+                      <span className="bg-rose-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-md">
+                        <Lock className="w-3.5 h-3.5" /> ĐÃ ĐÓNG
+                      </span>
+                    </div>
+                  )}
                   <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-sm flex items-center text-[10px] font-bold text-[#001839]">
                     <MapPin className="w-3 h-3 text-[#b8860b] mr-1" /> {project.location.split(',')[1] || project.location}
                   </div>
@@ -309,12 +239,21 @@ export default function WelfareVinhomesView({ onBack }: WelfareVinhomesViewProps
                     </div>
                   </div>
                   <div className="pt-4 border-t border-gray-100 flex gap-3 shrink-0">
-                    <button 
-                      onClick={handleRegister}
-                      className="flex-1 bg-[#001839] text-white py-2.5 rounded-xl font-['Plus_Jakarta_Sans'] text-[13px] font-bold shadow-md hover:bg-[#002859] transition-all cursor-pointer text-center"
-                    >
-                      Nhận bảng giá VIP độc quyền
-                    </button>
+                    {selectedProject.status === 'CLOSED' ? (
+                      <button 
+                        disabled
+                        className="flex-1 bg-zinc-200 text-zinc-400 py-2.5 rounded-xl font-['Plus_Jakarta_Sans'] text-[13px] font-bold text-center cursor-not-allowed border border-zinc-300"
+                      >
+                        Dự án đã đóng đăng ký
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={handleRegister}
+                        className="flex-1 bg-[#001839] text-white py-2.5 rounded-xl font-['Plus_Jakarta_Sans'] text-[13px] font-bold shadow-md hover:bg-[#002859] transition-all cursor-pointer text-center"
+                      >
+                        Nhận bảng giá VIP độc quyền
+                      </button>
+                    )}
                   </div>
                 </>
               )}

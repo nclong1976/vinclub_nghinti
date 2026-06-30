@@ -18,6 +18,46 @@ export default function UserChat() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePaperclipClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageIconClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isImageOnly: boolean) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Url = event.target?.result as string;
+      if (!base64Url) return;
+
+      let type: 'image' | 'video' | 'file' = 'file';
+      if (file.type.startsWith('image/')) {
+        type = 'image';
+      } else if (file.type.startsWith('video/')) {
+        type = 'video';
+      }
+
+      setSending(true);
+      try {
+        await sendMessageAsUser(userId, file.name, type, base64Url, file.name);
+      } catch (err) {
+        console.error("Lỗi gửi tập tin:", err);
+      } finally {
+        setSending(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Register user details to RTDB for admin visibility
   useEffect(() => {
@@ -120,7 +160,32 @@ export default function UserChat() {
                       : 'bg-white text-[#191c1e] rounded-2xl rounded-tl-sm border border-[#e0e3e5]'
                   }`}
                 >
-                  <p>{msg.text}</p>
+                  {msg.type === 'image' ? (
+                    <div className="space-y-1">
+                      <img 
+                        src={msg.fileUrl} 
+                        alt="sent image" 
+                        className="max-w-full rounded-lg max-h-60 object-contain cursor-pointer" 
+                        onClick={() => window.open(msg.fileUrl, '_blank')} 
+                      />
+                      {msg.text && msg.text !== msg.fileName && <p className="mt-1">{msg.text}</p>}
+                    </div>
+                  ) : msg.type === 'video' ? (
+                    <div className="space-y-1">
+                      <video src={msg.fileUrl} controls className="max-w-full rounded-lg max-h-60" />
+                      {msg.text && msg.text !== msg.fileName && <p className="mt-1">{msg.text}</p>}
+                    </div>
+                  ) : msg.type === 'file' ? (
+                    <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${isUser ? 'bg-white/10 border-white/20' : 'bg-black/5 border-black/10'}`}>
+                      <Paperclip className={`w-5 h-5 shrink-0 ${isUser ? 'text-blue-300' : 'text-[#b8860b]'}`} />
+                      <div className="min-w-0 flex-1">
+                        <p className={`font-semibold text-xs truncate ${isUser ? 'text-white' : 'text-[#001839]'}`}>{msg.fileName || 'Tập tin'}</p>
+                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={`text-[10px] hover:underline font-bold ${isUser ? 'text-blue-300' : 'text-[#0055c8]'}`}>Tải xuống</a>
+                      </div>
+                    </div>
+                  ) : (
+                    <p>{msg.text}</p>
+                  )}
                   <span className={`text-[10px] block mt-1 ${isUser ? 'text-blue-200 text-right' : 'text-gray-400'}`}>
                     {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}
                   </span>
@@ -148,10 +213,13 @@ export default function UserChat() {
       {/* Input Area */}
       <div className="px-4 py-3 bg-[#f7f9fb] border-t border-[#e0e3e5] mb-20 shrink-0">
         <div className="flex items-center gap-2">
-          <button className="text-[#43474f] hover:text-[#001839] transition-colors p-1.5 shrink-0">
+          <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e, false)} style={{ display: 'none' }} />
+          <input type="file" ref={imageInputRef} accept="image/*,video/*" onChange={(e) => handleFileChange(e, true)} style={{ display: 'none' }} />
+          
+          <button onClick={handlePaperclipClick} className="text-[#43474f] hover:text-[#001839] transition-colors p-1.5 shrink-0">
             <Paperclip className="w-6 h-6 transform -rotate-45" />
           </button>
-          <button className="text-[#43474f] hover:text-[#001839] transition-colors p-1.5 shrink-0">
+          <button onClick={handleImageIconClick} className="text-[#43474f] hover:text-[#001839] transition-colors p-1.5 shrink-0">
             <ImageIcon className="w-6 h-6" />
           </button>
           

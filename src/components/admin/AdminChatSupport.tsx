@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Paperclip, Image as ImageIcon } from "lucide-react";
 import { useChatRooms } from "../../hooks/useChatRooms";
 import { useMessages } from "../../hooks/useMessages";
 import { useUsers } from "../../hooks/useUsers";
@@ -15,6 +15,47 @@ export default function AdminChatSupport() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePaperclipClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageIconClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !activeUserId) return;
+    const file = files[0];
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Url = event.target?.result as string;
+      if (!base64Url) return;
+
+      let type: 'image' | 'video' | 'file' = 'file';
+      if (file.type.startsWith('image/')) {
+        type = 'image';
+      } else if (file.type.startsWith('video/')) {
+        type = 'video';
+      }
+
+      setSending(true);
+      try {
+        await sendMessageAsAdmin(activeUserId, "admin", file.name, type, base64Url, file.name);
+      } catch (err) {
+        console.error("Lỗi gửi tập tin admin:", err);
+      } finally {
+        setSending(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const [threadStatuses, setThreadStatuses] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -172,13 +213,38 @@ export default function AdminChatSupport() {
                   return (
                     <div key={msg.id} className={`flex w-full ${isAdminMsg ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-[70%] px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-md flex flex-col gap-1 ${
+                        className={`max-w-[70%] px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-md flex flex-col gap-1.5 ${
                           isAdminMsg
                             ? "bg-[#c29b57] text-black rounded-tr-sm font-semibold"
                             : "bg-zinc-800 text-zinc-100 rounded-tl-sm border border-zinc-700/60"
                         }`}
                       >
-                        <p>{msg.text}</p>
+                        {msg.type === 'image' ? (
+                          <div className="space-y-1">
+                            <img 
+                              src={msg.fileUrl} 
+                              alt="sent image" 
+                              className="max-w-full rounded-lg max-h-60 object-contain cursor-zoom-in" 
+                              onClick={() => window.open(msg.fileUrl, '_blank')} 
+                            />
+                            {msg.text && msg.text !== msg.fileName && <p className="mt-1">{msg.text}</p>}
+                          </div>
+                        ) : msg.type === 'video' ? (
+                          <div className="space-y-1">
+                            <video src={msg.fileUrl} controls className="max-w-full rounded-lg max-h-60" />
+                            {msg.text && msg.text !== msg.fileName && <p className="mt-1">{msg.text}</p>}
+                          </div>
+                        ) : msg.type === 'file' ? (
+                          <div className={`flex items-center gap-2 p-2 rounded-lg border ${isAdminMsg ? 'bg-black/10 border-black/20' : 'bg-zinc-900/80 border-zinc-700'}`}>
+                            <Paperclip className={`w-4 h-4 shrink-0 ${isAdminMsg ? 'text-black' : 'text-[#ebd5ad]'}`} />
+                            <div className="min-w-0 flex-1">
+                              <p className={`font-bold text-[11px] truncate ${isAdminMsg ? 'text-black' : 'text-zinc-100'}`}>{msg.fileName || 'Tập tin'}</p>
+                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={`text-[10px] hover:underline font-extrabold ${isAdminMsg ? 'text-black/80' : 'text-[#c29b57]'}`}>Tải xuống</a>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>{msg.text}</p>
+                        )}
                         <span className={`text-[8px] self-end mt-0.5 ${isAdminMsg ? "text-black/60" : "text-zinc-500"}`}>
                           {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}
                         </span>
@@ -196,8 +262,26 @@ export default function AdminChatSupport() {
                 e.preventDefault();
                 handleSend();
               }}
-              className="p-4 bg-zinc-950/40 border-t border-zinc-850 flex gap-3"
+              className="p-4 bg-zinc-950/40 border-t border-zinc-850 flex items-center gap-2"
             >
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+              <input type="file" ref={imageInputRef} accept="image/*,video/*" onChange={handleFileChange} style={{ display: 'none' }} />
+              
+              <button 
+                type="button"
+                onClick={handlePaperclipClick} 
+                className="text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 cursor-pointer shrink-0"
+              >
+                <Paperclip className="w-4 h-4 transform -rotate-45" />
+              </button>
+              <button 
+                type="button"
+                onClick={handleImageIconClick} 
+                className="text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 cursor-pointer shrink-0"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </button>
+
               <input
                 type="text"
                 placeholder="Nhập phản hồi hỗ trợ cho hội viên..."
@@ -209,7 +293,7 @@ export default function AdminChatSupport() {
               <button
                 type="submit"
                 disabled={!inputText.trim() || sending}
-                className="bg-[#c29b57] disabled:bg-zinc-800 text-black disabled:text-zinc-600 font-bold text-xs px-5 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors active:scale-95 shadow-md"
+                className="bg-[#c29b57] disabled:bg-zinc-800 text-black disabled:text-zinc-600 font-bold text-xs px-5 py-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors active:scale-95 shadow-md shrink-0 self-stretch"
               >
                 {sending ? "..." : "Gửi"}
               </button>

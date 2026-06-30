@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   // Projects Management States
   const [projects, setProjects] = useState<Project[]>([]);
   const [vinpearlProjects, setVinpearlProjects] = useState<Project[]>([]);
-  const [projectType, setProjectType] = useState<'standard' | 'vinpearl'>('standard');
+  const [projectType, setProjectType] = useState<'standard' | 'vinfast' | 'vinpearl' | 'vinhomes'>('standard');
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectForm, setProjectForm] = useState({
@@ -294,13 +294,12 @@ export default function AdminDashboard() {
         minInvestAmount: proj.minInvestAmount || 30000000,
         scale: proj.scale || '10.300.000.000 VNĐ',
         progress: proj.progress || 0,
-        category: proj.category || (projectType === 'standard' ? 'Y TẾ' : 'VINPEARL'),
+        category: proj.category || (projectType === 'standard' ? 'Y TẾ' : projectType === 'vinfast' ? 'VINFAST' : projectType === 'vinpearl' ? 'Vinpearl' : 'Vinhomes'),
         status: (proj.status as any) || 'ACTIVE'
       });
     } else {
       setEditingProject(null);
-      const activeList = projectType === 'standard' ? projects : vinpearlProjects;
-      const nextId = activeList.length > 0 ? String(Math.max(...activeList.map(p => parseInt(p.id) || 0)) + 1) : '1';
+      const nextId = `proj-${Date.now()}`;
       setProjectForm({
         id: nextId,
         title: '',
@@ -313,7 +312,7 @@ export default function AdminDashboard() {
         minInvestAmount: 30000000,
         scale: '10.300.000.000 VNĐ',
         progress: 0,
-        category: projectType === 'standard' ? 'Y TẾ' : 'VINPEARL',
+        category: projectType === 'standard' ? 'Y TẾ' : projectType === 'vinfast' ? 'VINFAST' : projectType === 'vinpearl' ? 'Vinpearl' : 'Vinhomes',
         status: 'ACTIVE'
       });
     }
@@ -333,17 +332,7 @@ export default function AdminDashboard() {
     };
 
     try {
-      if (projectType === 'standard') {
-        await setDoc(doc(db, 'projects', projectForm.id), dataToSave);
-      } else {
-        let updated: Project[];
-        if (editingProject) {
-          updated = vinpearlProjects.map(p => p.id === projectForm.id ? dataToSave : p);
-        } else {
-          updated = [...vinpearlProjects, dataToSave];
-        }
-        await setDoc(doc(db, 'system', 'project_control'), { projects: updated }, { merge: true });
-      }
+      await setDoc(doc(db, 'projects', projectForm.id), dataToSave);
       setIsProjectModalOpen(false);
       setEditingProject(null);
       await logAdminAction(`Lưu thay đổi dự án ID ${projectForm.id}: "${projectForm.title}"`);
@@ -354,15 +343,10 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteProject = async (id: string) => {
-    const projName = projects.find(p => p.id === id)?.title || vinpearlProjects.find(p => p.id === id)?.title || id;
+    const projName = projects.find(p => p.id === id)?.title || id;
     if (window.confirm("Bạn có chắc chắn muốn xóa dự án này không?")) {
       try {
-        if (projectType === 'standard') {
-          await deleteDoc(doc(db, 'projects', id));
-        } else {
-          const updated = vinpearlProjects.filter(p => p.id !== id);
-          await setDoc(doc(db, 'system', 'project_control'), { projects: updated }, { merge: true });
-        }
+        await deleteDoc(doc(db, 'projects', id));
         await logAdminAction(`Xóa dự án ID ${id}: "${projName}"`);
       } catch (err) {
         console.error("Error deleting project:", err);
@@ -373,13 +357,8 @@ export default function AdminDashboard() {
   const toggleProjectStatus = async (proj: Project) => {
     const nextStatus = proj.status === 'ACTIVE' ? 'CLOSED' : 'ACTIVE';
     try {
-      if (projectType === 'standard') {
-        await updateDoc(doc(db, 'projects', proj.id), { status: nextStatus });
-      } else {
-        const updated = vinpearlProjects.map(p => p.id === proj.id ? { ...p, status: nextStatus } : p);
-        await setDoc(doc(db, 'system', 'project_control'), { projects: updated }, { merge: true });
-      }
-      await logAdminAction(`Cập nhật trạng thái dự án "${proj.title}" sang: ${nextStatus === 'ACTIVE' ? 'HIỂN THỊ' : 'ẨN'}`);
+      await updateDoc(doc(db, 'projects', proj.id), { status: nextStatus });
+      await logAdminAction(`Cập nhật trạng thái dự án "${proj.title}" sang: ${nextStatus === 'ACTIVE' ? 'MỞ' : 'ĐÓNG'}`);
     } catch (err) {
       console.error(err);
     }
@@ -1007,24 +986,42 @@ export default function AdminDashboard() {
               </div>
 
               {/* Project Type Toggle Selector */}
-              <div className="flex bg-zinc-900 border border-zinc-850 p-1 rounded-xl self-start w-fit">
+              <div className="flex flex-wrap bg-zinc-900 border border-zinc-850 p-1 rounded-xl gap-1 self-start w-fit">
                 <button 
                   onClick={() => setProjectType('standard')}
                   className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectType === 'standard' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-450 hover:text-white'}`}
                 >
-                  Dự án Đầu tư Chung
+                  Đầu tư Chung
+                </button>
+                <button 
+                  onClick={() => setProjectType('vinfast')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectType === 'vinfast' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-450 hover:text-white'}`}
+                >
+                  VinFast
                 </button>
                 <button 
                   onClick={() => setProjectType('vinpearl')}
                   className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectType === 'vinpearl' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-450 hover:text-white'}`}
                 >
-                  Siêu dự án Vinpearl (Hạ Long Xanh, Trống Đồng...)
+                  Vinpearl
+                </button>
+                <button 
+                  onClick={() => setProjectType('vinhomes')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectType === 'vinhomes' ? 'bg-[#c29b57] text-black shadow-md' : 'text-zinc-450 hover:text-white'}`}
+                >
+                  Vinhomes
                 </button>
               </div>
 
               {/* Projects Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {(projectType === 'standard' ? projects : vinpearlProjects).map(proj => (
+                {projects.filter(p => {
+                  if (projectType === 'standard') return p.category !== 'VINFAST' && p.category !== 'Vinpearl' && p.category !== 'Vinhomes';
+                  if (projectType === 'vinfast') return p.category === 'VINFAST';
+                  if (projectType === 'vinpearl') return p.category === 'Vinpearl';
+                  if (projectType === 'vinhomes') return p.category === 'Vinhomes';
+                  return true;
+                }).map(proj => (
                   <div key={proj.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between">
                     <div className="h-44 w-full bg-zinc-950 relative">
                       {proj.imageUrl ? (
@@ -1043,7 +1040,7 @@ export default function AdminDashboard() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-bold text-zinc-500 uppercase">Mã ID: {proj.id}</span>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${proj.status === 'ACTIVE' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-zinc-850 text-zinc-400 border border-zinc-700'}`}>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${proj.status === 'ACTIVE' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}`}>
                             {proj.status === 'ACTIVE' ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
                           </span>
                         </div>
@@ -1090,12 +1087,12 @@ export default function AdminDashboard() {
                           onClick={() => toggleProjectStatus(proj)}
                           className={`flex-1 flex items-center justify-center gap-2 border font-bold text-xs py-2.5 rounded-xl cursor-pointer transition-colors active:scale-95 ${
                             proj.status === 'ACTIVE' 
-                              ? 'bg-amber-950/40 border-amber-800/60 text-amber-300 hover:bg-amber-950/70'
+                              ? 'bg-rose-950/40 border-rose-800/60 text-rose-300 hover:bg-rose-950/70'
                               : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300 hover:bg-emerald-950/70'
                           }`}
                         >
-                          {proj.status === 'ACTIVE' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          {proj.status === 'ACTIVE' ? 'Ẩn' : 'Hiện'}
+                          {proj.status === 'ACTIVE' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                          {proj.status === 'ACTIVE' ? 'Đóng' : 'Mở'}
                         </button>
                         <button 
                           onClick={() => handleDeleteProject(proj.id)}

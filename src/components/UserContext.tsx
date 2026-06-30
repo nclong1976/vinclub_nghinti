@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection, query, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc, updateDoc, collection, query, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Stock, PortfolioItem, Order, Project, AuditLogEntry, CasinoGame } from '../types';
 import { ref, set, update, serverTimestamp } from 'firebase/database';
@@ -329,54 +329,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [cmsNews, setCmsNewsState] = useState<any[]>([]);
   const [cmsBanners, setCmsBannersState] = useState<string[]>([]);
   const [articlesList, setArticlesList] = useState<any[]>([]);
-  const [cmsVinfast, setCmsVinfastState] = useState<any[]>(() => [
-    { title: 'VF 3', kw: '32', profit: '0.8', minCapital: '15.000.000', progress: 72 },
-    { title: 'VF 7', kw: '260', profit: '1.2', minCapital: '50.000.000', progress: 48 },
-    { title: 'VF 8', kw: '300', profit: '1.5', minCapital: '100.000.000', progress: 65 },
-    { title: 'VF 9', kw: '300', profit: '1.8', minCapital: '200.000.000', progress: 83 },
-  ]);
-  const [portfolio, setPortfolioState] = useState<PortfolioItem[]>([]);
+    const [portfolio, setPortfolioState] = useState<PortfolioItem[]>([]);
   const [standardProjects, setStandardProjects] = useState<Project[]>([]);
   const [standardStocks, setStandardStocks] = useState<Stock[]>([]);
   const [casinoGames, setCasinoGames] = useState<CasinoGame[]>([]);
   const [orderHistory, setOrderHistoryState] = useState<Order[]>([]);
   const [keepNotes, setKeepNotesState] = useState<KeepNote[]>([]);
-  const [adminProjects, setAdminProjectsState] = useState<Project[]>(() => [
-    {
-      id: '1',
-      title: 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)',
-      imageUrl: 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg',
-      interestRate: '1.5%',
-      duration: '6 ngày',
-      minAmount: '5.0 Tỷ',
-      scale: '40 tỷ USD',
-      progress: 96,
-      category: 'Vinpearl',
-      durationDays: 6,
-      minInvestAmount: 5000000000,
-      interestRateValue: 0.015,
-      status: 'ACTIVE',
-      targetCapital: 40000000000000,
-      raisedCapital: 38400000000000
-    },
-    {
-      id: '2',
-      title: 'Đại đô thị phức hợp Hạ Long Xanh (Quảng Ninh)',
-      imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg',
-      interestRate: '1.8%',
-      duration: '7 ngày',
-      minAmount: '1.5 Tỷ',
-      scale: '18 tỷ USD',
-      progress: 98,
-      category: 'Vinhomes',
-      durationDays: 7,
-      minInvestAmount: 1500000000,
-      interestRateValue: 0.018,
-      status: 'ACTIVE',
-      targetCapital: 18000000000000,
-      raisedCapital: 17640000000000
-    }
-  ]);
   const [auditLog, setAuditLogState] = useState<AuditLogEntry[]>([]);
 
   const [interestRate, setInterestRateState] = useState<number>(() => {
@@ -966,8 +924,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setCmsBannersState(banners);
   };
   const updateCmsVinfast = async (cars: any[]) => {
-    await setDoc(doc(db, 'settings', 'cms_data'), { vinfast: cars }, { merge: true });
-    setCmsVinfastState(cars);
+    const batch = writeBatch(db);
+    cars.forEach(car => {
+      const projId = car.id || `vf-${car.title.toLowerCase().replace(' ', '')}`;
+      batch.update(doc(db, 'projects', projId), {
+        status: car.status || 'ACTIVE',
+        progress: car.progress !== undefined ? car.progress : 50
+      });
+    });
+    await batch.commit();
   };
 
   const handleSetAvatar = async (val: string | null) => {
@@ -1024,99 +989,90 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProjectStatus = async (projectId: string, newStatus: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED') => {
-    const updatedProjects = adminProjects.map(p => p.id === projectId ? { ...p, status: newStatus } : p);
-    const newLog: AuditLogEntry = {
-      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-      time: new Date().toLocaleString('vi-VN'),
-      adminName: displayName,
-      action: `Cập nhật dự án ${updatedProjects.find(p => p.id === projectId)?.title} sang ${newStatus}`
-    };
-    const updatedLog = [newLog, ...auditLog];
-
-    setAdminProjectsState(updatedProjects);
-    setAuditLogState(updatedLog);
-
     try {
-      await setDoc(doc(db, 'system', 'project_control'), {
-        projects: updatedProjects,
-        auditLog: updatedLog
-      }, { merge: true });
+      const projectRef = doc(db, 'projects', projectId);
+      await updateDoc(projectRef, { status: newStatus });
+
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Cập nhật trạng thái dự án ID: ${projectId} sang ${newStatus}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
     } catch (e) {
       console.error("Error updating project status:", e);
     }
   };
 
   const updateProjectDetails = async (projectId: string, updates: Partial<Project>) => {
-    const updatedProjects = adminProjects.map(p => {
-      if (p.id === projectId) {
-        const merged = { ...p, ...updates };
-
-        // Auto convert fields if value changed
-        if (updates.interestRateValue !== undefined) {
-          merged.interestRate = `${(updates.interestRateValue * 100).toFixed(1)}%`;
-        }
-        if (updates.minInvestAmount !== undefined) {
-          const num = updates.minInvestAmount;
-          if (num >= 1000000000) {
-            merged.minAmount = `${(num / 1000000000).toFixed(1)} Tỷ`;
-          } else {
-            merged.minAmount = `${(num / 1000000).toFixed(0)} Triệu`;
-          }
-        }
-        if (updates.durationDays !== undefined) {
-          merged.duration = `${updates.durationDays} ngày`;
-        }
-        return merged;
-      }
-      return p;
-    });
-
-    const projectTitle = adminProjects.find(p => p.id === projectId)?.title || '';
-    const changeLogs: string[] = [];
-    if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
-    if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(1)}%`);
-    if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
-    if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
-
-    const newLog: AuditLogEntry = {
-      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-      time: new Date().toLocaleString('vi-VN'),
-      adminName: displayName,
-      action: `Sửa dự án "${projectTitle}": ${changeLogs.join(', ')}`
-    };
-    const updatedLog = [newLog, ...auditLog];
-
-    setAdminProjectsState(updatedProjects);
-    setAuditLogState(updatedLog);
-
     try {
-      await setDoc(doc(db, 'system', 'project_control'), {
-        projects: updatedProjects,
-        auditLog: updatedLog
-      }, { merge: true });
+      const projectRef = doc(db, 'projects', projectId);
+      const merged: any = { ...updates };
+
+      if (updates.interestRateValue !== undefined) {
+        merged.interestRate = `${(updates.interestRateValue * 100).toFixed(1)}%`;
+      }
+      if (updates.minInvestAmount !== undefined) {
+        const num = updates.minInvestAmount;
+        if (num >= 1000000000) {
+          merged.minAmount = `${(num / 1000000000).toFixed(1)} Tỷ VNĐ`;
+        } else if (num >= 1000000) {
+          merged.minAmount = `${(num / 1000000).toFixed(0)}.000.000 VNĐ`;
+        } else {
+          merged.minAmount = `${num.toLocaleString('vi-VN')} VNĐ`;
+        }
+      }
+      if (updates.durationDays !== undefined) {
+        merged.duration = `${updates.durationDays} ngày`;
+      }
+
+      await updateDoc(projectRef, merged);
+
+      const changeLogs: string[] = [];
+      if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
+      if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(1)}%`);
+      if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
+      if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
+
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `Sửa dự án ID: ${projectId}: ${changeLogs.join(', ')}`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
     } catch (e) {
       console.error("Error updating project details:", e);
     }
   };
 
   const updateAllProjectsStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
-    const updatedProjects = adminProjects.map(p => ({ ...p, status: newStatus }));
-    const newLog: AuditLogEntry = {
-      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-      time: new Date().toLocaleString('vi-VN'),
-      adminName: displayName,
-      action: `${newStatus === 'ACTIVE' ? 'Mở cửa' : 'Đóng cửa'} TẤT CẢ các dự án đầu tư`
-    };
-    const updatedLog = [newLog, ...auditLog];
-
-    setAdminProjectsState(updatedProjects);
-    setAuditLogState(updatedLog);
-
     try {
-      await setDoc(doc(db, 'system', 'project_control'), {
-        projects: updatedProjects,
-        auditLog: updatedLog
-      }, { merge: true });
+      const q = query(collection(db, 'projects'));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(docSnap => {
+        batch.update(doc(db, 'projects', docSnap.id), { status: newStatus });
+      });
+      await batch.commit();
+
+      const newLog: AuditLogEntry = {
+        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
+        time: new Date().toLocaleString('vi-VN'),
+        adminName: displayName,
+        action: `${newStatus === 'ACTIVE' ? 'Mở cửa' : 'Đóng cửa'} TẤT CẢ các dự án`
+      };
+      const updatedLog = [newLog, ...auditLog];
+      setAuditLogState(updatedLog);
+
+      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
     } catch (e) {
       console.error("Error updating all projects status:", e);
     }
@@ -1135,11 +1091,58 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ...data
           } as Project;
         });
-        projectsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        // Sort safely since some ids are non-numeric strings
+        projectsData.sort((a, b) => a.id.localeCompare(b.id));
         setStandardProjects(projectsData);
       } else {
-        import('../data').then(({ projects: localProjects }) => {
-          setStandardProjects(localProjects.map(p => ({ ...p, status: 'ACTIVE' })));
+        // Seed all categories of default projects to Firestore
+        import('../data').then(async ({ projects: localProjects }) => {
+          const batch = writeBatch(db);
+
+          // Seed standard projects from local data
+          localProjects.forEach(p => {
+            batch.set(doc(db, "projects", p.id), { ...p, status: 'ACTIVE' });
+          });
+
+          // Seed Vinfast projects
+          const vfCars = [
+            { id: 'vf-3', title: 'VF 3', imageUrl: 'https://vinfastauto.com/themes/porto/img/homepage-v2/car/VF3.webp', interestRate: '0.8%', interestRateValue: 0.008, duration: '2 ngày', durationDays: 2, minAmount: '15.000.000 VNĐ', minInvestAmount: 15000000, scale: '150.000+ Tỷ VNĐ', progress: 72, category: 'VINFAST', status: 'ACTIVE', description: 'Dòng xe VF 3 hiện đại.' },
+            { id: 'vf-7', title: 'VF 7', imageUrl: 'https://vinfastauto.com/themes/porto/img/homepage-v2/car/VF7.webp', interestRate: '1.2%', interestRateValue: 0.012, duration: '2 ngày', durationDays: 2, minAmount: '50.000.000 VNĐ', minInvestAmount: 50000000, scale: '150.000+ Tỷ VNĐ', progress: 48, category: 'VINFAST', status: 'ACTIVE', description: 'Dòng xe VF 7 hiện đại.' },
+            { id: 'vf-8', title: 'VF 8', imageUrl: 'https://vinfastauto.com/themes/porto/img/homepage-v2/car/VF8.webp', interestRate: '1.5%', interestRateValue: 0.015, duration: '2 ngày', durationDays: 2, minAmount: '100.000.000 VNĐ', minInvestAmount: 100000000, scale: '150.000+ Tỷ VNĐ', progress: 65, category: 'VINFAST', status: 'ACTIVE', description: 'Dòng xe VF 8 hiện đại.' },
+            { id: 'vf-9', title: 'VF 9', imageUrl: 'https://vinfastauto.com/themes/porto/img/homepage-v2/car/VF9.webp', interestRate: '1.8%', interestRateValue: 0.018, duration: '2 ngày', durationDays: 2, minAmount: '200.000.000 VNĐ', minInvestAmount: 200000000, scale: '150.000+ Tỷ VNĐ', progress: 83, category: 'VINFAST', status: 'ACTIVE', description: 'Dòng xe VF 9 hiện đại.' }
+          ];
+          vfCars.forEach(p => {
+            batch.set(doc(db, "projects", p.id), p);
+          });
+
+          // Seed Vinpearl projects
+          const vpProjects = [
+            { id: 'vp-1', title: 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)', imageUrl: 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg', interestRate: '1.5%', duration: '6 ngày', minAmount: '5.0 Tỷ', scale: '40 tỷ USD', progress: 96, category: 'Vinpearl', durationDays: 6, minInvestAmount: 5000000000, interestRateValue: 0.015, status: 'ACTIVE', targetCapital: 40000000000000, raisedCapital: 38400000000000 },
+            { id: 'vp-2', title: 'Đại đô thị phức hợp Hạ Long Xanh (Quảng Ninh)', imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg', interestRate: '1.8%', duration: '7 ngày', minAmount: '1.5 Tỷ', scale: '18 tỷ USD', progress: 98, category: 'Vinpearl', durationDays: 7, minInvestAmount: 1500000000, interestRateValue: 0.018, status: 'ACTIVE', targetCapital: 18000000000000, raisedCapital: 17640000000000 }
+          ];
+          vpProjects.forEach(p => {
+            batch.set(doc(db, "projects", p.id), p);
+          });
+
+          // Seed Vinhomes projects
+          const vhProjects = [
+            { id: 'vh-royal-island', title: 'Vinhomes Royal Island', location: 'Vũ Yên, Hải Phòng', description: 'Đảo hoàng gia đầu tiên tại Việt Nam sở hữu sân golf 36 hố, bến du thuyền cao cấp và học viện cưỡi ngựa đẳng cấp quốc tế.', imageUrl: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=800', highlights: ['Sân golf 36 hố', 'Bến du thuyền', 'Học viện cưỡi ngựa'], interestRate: '2.1%', duration: '10 ngày', minAmount: '1.0 Tỷ', minInvestAmount: 1000000000, interestRateValue: 0.021, scale: '1.5 tỷ USD', progress: 88, category: 'Vinhomes', durationDays: 10, status: 'ACTIVE' },
+            { id: 'vh-ocean-park-1', title: 'Vinhomes Ocean Park 1', location: 'Gia Lâm, Hà Nội', description: 'Đại đô thị "Thành phố biển hồ" với biển hồ nước mặn 6.1 ha và hồ ngọc trai cát trắng 24.5 ha rộng lớn.', imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800', highlights: ['Biển hồ nước mặn', 'Hồ ngọc trai', 'Bãi cát trắng'], interestRate: '1.5%', duration: '5 ngày', minAmount: '10.000.000 VNĐ', minInvestAmount: 10000000, interestRateValue: 0.015, scale: '6.0 tỷ USD', progress: 95, category: 'Vinhomes', durationDays: 5, status: 'ACTIVE' },
+            { id: 'vh-ocean-park-2', title: 'Vinhomes Ocean Park 2', location: 'Văn Giang, Hưng Yên', description: 'Siêu quần thể đô thị biển quy mô 458 ha với tổ hợp công viên nước tạo sóng Wave Park lớn nhất thế giới.', imageUrl: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=800', highlights: ['Royal Wave Park', 'Công viên sóng', 'Đại lộ Kinh Đô'], interestRate: '1.8%', duration: '6 ngày', minAmount: '30.000.000 VNĐ', minInvestAmount: 30000000, interestRateValue: 0.018, scale: '8.0 tỷ USD', progress: 92, category: 'Vinhomes', durationDays: 6, status: 'ACTIVE' },
+            { id: 'vh-ocean-park-3', title: 'Vinhomes Ocean Park 3', location: 'Văn Giang, Hưng Yên', description: 'Vịnh biển thượng lưu sở hữu hồ nước mặn bốn mùa trong nhà, công viên sóng biển khổng lồ đẳng cấp.', imageUrl: 'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?q=80&w=800', highlights: ['Vịnh biển 4 mùa', 'Hồ bơi nước mặn', 'Vịnh Tây Ban Nha'], interestRate: '1.9%', duration: '7 ngày', minAmount: '50.000.000 VNĐ', minInvestAmount: 50000000, interestRateValue: 0.019, scale: '5.5 tỷ USD', progress: 90, category: 'Vinhomes', durationDays: 7, status: 'ACTIVE' },
+            { id: 'vh-grand-park', title: 'Vinhomes Grand Park', location: 'Quận 9, TP. HCM', description: 'Đại đô thị thông minh đẳng cấp quốc tế tại trung tâm mới của TP.HCM sở hữu đại công viên 36 ha.', imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=800', highlights: ['Công viên 36 ha', 'Đô thị thông minh', 'The Rainbow'], interestRate: '1.7%', duration: '5 ngày', minAmount: '15.000.000 VNĐ', minInvestAmount: 15000000, interestRateValue: 0.017, scale: '7.2 tỷ USD', progress: 96, category: 'Vinhomes', durationDays: 5, status: 'ACTIVE' },
+            { id: 'vh-smart-city', title: 'Vinhomes Smart City', location: 'Nam Từ Liêm, Hà Nội', description: 'Đô thị thông minh năng động phong cách Singapore tại cửa ngõ phía Tây thủ đô với kết nối AI toàn diện.', imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800', highlights: ['Vườn Nhật 6.1 ha', 'An ninh AI', 'Smart Home'], interestRate: '1.6%', duration: '5 ngày', minAmount: '20.000.000 VNĐ', minInvestAmount: 20000000, interestRateValue: 0.016, scale: '6.8 tỷ USD', progress: 94, category: 'Vinhomes', durationDays: 5, status: 'ACTIVE' },
+            { id: 'vh-golden-river', title: 'Vinhomes Golden River', location: 'Ba Son, Quận 1, TP. HCM', description: 'Khu đô thị sinh thái ven sông siêu sang trọng bậc nhất Sài Gòn tọa lạc tại mảnh đất Ba Son lịch sử.', imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=800', highlights: ['Vị trí Quận 1', 'Sát ga Metro', 'Bến du thuyền Ba Son'], interestRate: '2.5%', duration: '12 ngày', minAmount: '1.5 Tỷ', minInvestAmount: 1500000000, interestRateValue: 0.025, scale: '2.0 tỷ USD', progress: 85, category: 'Vinhomes', durationDays: 12, status: 'ACTIVE' },
+            { id: 'vh-central-park', title: 'Vinhomes Central Park', location: 'Bình Thạnh, TP. HCM', description: 'Lấy cảm hứng từ Central Park New York với tòa tháp cao nhất Việt Nam Landmark 81 sừng sững.', imageUrl: 'https://images.unsplash.com/photo-1508962914676-134849a727f0?q=80&w=800', highlights: ['Landmark 81', 'Công viên ven sông', 'Biệt thự biệt lập'], interestRate: '2.2%', duration: '8 ngày', minAmount: '800 Triệu', minInvestAmount: 800000000, interestRateValue: 0.022, scale: '4.5 tỷ USD', progress: 91, category: 'Vinhomes', durationDays: 8, status: 'ACTIVE' },
+            { id: 'vh-riverside', title: 'Vinhomes Riverside', location: 'Long Biên, Hà Nội', description: 'Khu đô thị sinh thái biệt thự ven sông mang đậm phong cách Venice sang trọng, thanh bình và an ninh nghiêm ngặt.', imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=800', highlights: ['Kênh đào sinh thái', 'Phong cách Venice', 'Clubhouse cao cấp'], interestRate: '2.3%', duration: '9 ngày', minAmount: '1.2 Tỷ', minInvestAmount: 1200000000, interestRateValue: 0.023, scale: '3.2 tỷ USD', progress: 89, category: 'Vinhomes', durationDays: 9, status: 'ACTIVE' },
+            { id: 'vh-times-city', title: 'Vinhomes Times City', location: 'Hai Bà Trưng, Hà Nội', description: 'Khu đô thị kiểu mẫu với thủy cung hiện đại Vinpearl, nhạc nước hoành tráng và bệnh viện Vinmec cao cấp.', imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800', highlights: ['Thủy cung hiện đại', 'Nhạc nước quảng trường', 'Vinschool liên cấp'], interestRate: '1.4%', duration: '4 ngày', minAmount: '10.000.000 VNĐ', minInvestAmount: 10000000, interestRateValue: 0.014, scale: '3.8 tỷ USD', progress: 97, category: 'Vinhomes', durationDays: 4, status: 'ACTIVE' },
+            { id: 'vh-royal-city', title: 'Vinhomes Royal City', location: 'Thanh Xuân, Hà Nội', description: '"Thành phố hoàng gia" mang phong cách kiến trúc châu Âu cổ điển quý phái với quảng trường rộng lớn.', imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800', highlights: ['Kiến trúc Hoàng Gia', 'Sân băng trong nhà', 'Royal Mega Mall'], interestRate: '1.6%', duration: '4 ngày', minAmount: '20.000.000 VNĐ', minInvestAmount: 20000000, interestRateValue: 0.016, scale: '4.2 tỷ USD', progress: 95, category: 'Vinhomes', durationDays: 4, status: 'ACTIVE' }
+          ];
+          vhProjects.forEach(p => {
+            batch.set(doc(db, "projects", p.id), p);
+          });
+
+          await batch.commit();
         });
       }
     }, (err) => {
@@ -1382,64 +1385,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Real-time listener for Project Control
+  // Real-time listener for Project Control (only audit logs)
   useEffect(() => {
     const projectDocRef = doc(db, 'system', 'project_control');
     const unsubscribe = onSnapshot(projectDocRef, (docSnap) => {
-      const freshProjects: Project[] = [
-        {
-          id: '1',
-          title: 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)',
-          imageUrl: 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg',
-          interestRate: '1.5%',
-          duration: '6 ngày',
-          minAmount: '5.0 Tỷ',
-          scale: '40 tỷ USD',
-          progress: 96,
-          category: 'Vinpearl',
-          durationDays: 6,
-          minInvestAmount: 5000000000,
-          interestRateValue: 0.015,
-          status: 'ACTIVE',
-          targetCapital: 40000000000000,
-          raisedCapital: 38400000000000
-        },
-        {
-          id: '2',
-          title: 'Đại đô thị phức hợp Hạ Long Xanh (Quảng Ninh)',
-          imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg',
-          interestRate: '1.8%',
-          duration: '7 ngày',
-          minAmount: '1.5 Tỷ',
-          scale: '18 tỷ USD',
-          progress: 98,
-          category: 'Vinhomes',
-          durationDays: 7,
-          minInvestAmount: 1500000000,
-          interestRateValue: 0.018,
-          status: 'ACTIVE',
-          targetCapital: 18000000000000,
-          raisedCapital: 17640000000000
-        }
-      ];
-
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.projects) {
-          if (data.projects.length !== 2 || data.projects[0]?.title !== 'Quỹ Phát Triển Thể Dục Thể Thao (Sân Vận Động Trống Đồng)' || data.projects[0]?.imageUrl !== 'https://cdnphoto.dantri.com.vn/2CK2b6vmZ5PsU3RmD6m4QbH50u0=/zoom/1200_630/2025/12/20/svd-trong-dong-cropped-1766216461218.jpg') {
-            setDoc(projectDocRef, { projects: freshProjects }, { merge: true });
-            setAdminProjectsState(freshProjects);
-          } else {
-            setAdminProjectsState(data.projects);
-          }
-        } else {
-          setDoc(projectDocRef, { projects: freshProjects }, { merge: true });
-          setAdminProjectsState(freshProjects);
-        }
         if (data.auditLog) setAuditLogState(data.auditLog);
       } else {
-        setDoc(projectDocRef, { projects: freshProjects, auditLog: [] });
-        setAdminProjectsState(freshProjects);
+        setDoc(projectDocRef, { auditLog: [] });
       }
     });
     return () => unsubscribe();
@@ -2186,10 +2140,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
-
       return stock;
     });
   };
+
+  // Derived collections from standardProjects
+  const adminProjects = standardProjects.filter(p => p.category === 'Vinpearl');
+  const cmsVinfast = standardProjects
+    .filter(p => p.category === 'VINFAST')
+    .map(p => ({
+      id: p.id,
+      title: p.title,
+      kw: '300',
+      profit: p.interestRate.replace('%', '').trim(),
+      minCapital: p.minAmount,
+      progress: p.progress,
+      status: p.status || 'ACTIVE'
+    }));
 
   return (
     <UserContext.Provider value={{

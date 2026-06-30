@@ -25,16 +25,26 @@ export async function registerUserToDb(
 // ── User gửi tin nhắn → push vào /chats/$userId/messages ──────────────────────
 export async function sendMessageAsUser(
   userId: string,
-  text: string
+  text: string,
+  type: "text" | "image" | "video" | "file" = "text",
+  fileUrl?: string,
+  fileName?: string
 ): Promise<void> {
   const newMsgRef = push(ref(rtdb, `chats/${userId}/messages`));
-  await set(newMsgRef, {
+  const msgData: any = {
     senderId: userId,
     text,
+    type,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (fileUrl) msgData.fileUrl = fileUrl;
+  if (fileName) msgData.fileName = fileName;
+
+  await set(newMsgRef, msgData);
+
+  const lastMsgDisplay = type === 'text' ? text : `[${type === 'image' ? 'Hình ảnh' : type === 'video' ? 'Video' : 'Tập tin'}]`;
   await update(ref(rtdb, `chats/${userId}/metadata`), {
-    lastMessage: text,
+    lastMessage: lastMsgDisplay,
     updatedAt: serverTimestamp(),
     unreadByAdmin: true,
   });
@@ -44,16 +54,26 @@ export async function sendMessageAsUser(
 export async function sendMessageAsAdmin(
   targetUserId: string,
   adminId: string,
-  text: string
+  text: string,
+  type: "text" | "image" | "video" | "file" = "text",
+  fileUrl?: string,
+  fileName?: string
 ): Promise<void> {
   const newMsgRef = push(ref(rtdb, `chats/${targetUserId}/messages`));
-  await set(newMsgRef, {
+  const msgData: any = {
     senderId: adminId,
     text,
+    type,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (fileUrl) msgData.fileUrl = fileUrl;
+  if (fileName) msgData.fileName = fileName;
+
+  await set(newMsgRef, msgData);
+
+  const lastMsgDisplay = type === 'text' ? text : `[${type === 'image' ? 'Hình ảnh' : type === 'video' ? 'Video' : 'Tập tin'}]`;
   await update(ref(rtdb, `chats/${targetUserId}/metadata`), {
-    lastMessage: text,
+    lastMessage: lastMsgDisplay,
     updatedAt: serverTimestamp(),
     unreadByAdmin: false,
   });
