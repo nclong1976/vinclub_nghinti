@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { ArrowLeft, Percent, Car, CheckCircle2, Headset, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
+import { UserContext } from './UserContext';
+import ProjectCard from './ProjectCard';
+import InvestmentModal from './InvestmentModal';
+import { Project } from '../types';
 
 interface WelfareMedicalViewProps {
   onBack: () => void;
 }
 
 export default function WelfareMedicalView({ onBack }: WelfareMedicalViewProps) {
+  const { standardProjects } = useContext(UserContext);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  const medicalProjects = standardProjects.filter(p => p.category === 'Y TẾ');
+
   return (
     <div className="flex-1 bg-[#f7f9fb] text-[#001839] antialiased overflow-y-auto scrollbar-hide pb-28">
       {/* TopAppBar */}
@@ -34,6 +43,19 @@ export default function WelfareMedicalView({ onBack }: WelfareMedicalViewProps) 
             <p className="font-['Plus_Jakarta_Sans'] text-[15px] text-white/90 mt-1">Dịch vụ y tế đẳng cấp quốc tế Vinmec dành riêng cho đối tác.</p>
           </div>
         </motion.section>
+
+        {/* Dynamic Investment Projects */}
+        {medicalProjects.length > 0 && (
+          <section className="mb-8 bg-zinc-950 p-5 rounded-2xl border border-[#ebd5ad]/20 text-white">
+            <h3 className="font-['Montserrat'] text-[18px] font-bold text-[#ebd5ad] mb-1 uppercase tracking-wide">Quỹ Đầu Tư Y Tế & Chăm Sóc Sức Khỏe</h3>
+            <p className="text-[11px] text-zinc-400 mb-5 font-['Plus_Jakarta_Sans']">Đặc quyền đầu tư sinh lời cùng hệ sinh thái y tế quốc tế Vinmec</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {medicalProjects.map(project => (
+                <ProjectCard key={project.id} project={project} onInvest={() => setSelectedProject(project)} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Ưu đãi đặc quyền */}
         <section className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,6 +172,10 @@ export default function WelfareMedicalView({ onBack }: WelfareMedicalViewProps) 
           </button>
         </section>
       </main>
+
+      {selectedProject && (
+        <InvestmentModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+      )}
     </div>
   );
 }

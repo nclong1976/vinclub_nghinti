@@ -165,7 +165,7 @@ export default function App() {
               </div>
             ) : currentView === 'welfare_vinhomes' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#f7f9fb]">
-                <WelfareVinhomesView onBack={() => setCurrentView('welfare_consultation')} />
+                <WelfareVinhomesView onBack={() => setCurrentView('home')} />
               </div>
             ) : currentView === 'vinpearl_projects' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#f7f9fb]">

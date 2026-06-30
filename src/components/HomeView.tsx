@@ -516,7 +516,7 @@ export default function HomeView({
 
         {/* Item 6: Vinhomes */}
         <button 
-          onClick={() => onNavigate('projects')}
+          onClick={() => onNavigate('welfare_vinhomes')}
           className="flex flex-col items-center text-center cursor-pointer group outline-none"
         >
           <div className="service-icon-container mb-2">

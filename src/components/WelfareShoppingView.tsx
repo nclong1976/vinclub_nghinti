@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { ArrowLeft, ArrowRight, ShoppingBag, Car, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { UserContext } from './UserContext';
+import ProjectCard from './ProjectCard';
+import InvestmentModal from './InvestmentModal';
+import { Project } from '../types';
 
 interface WelfareShoppingViewProps {
   onBack: () => void;
 }
 
 export default function WelfareShoppingView({ onBack }: WelfareShoppingViewProps) {
+  const { standardProjects } = useContext(UserContext);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  const shoppingProjects = standardProjects.filter(p => p.category === 'THƯƠNG MẠI' || p.category === 'CÔNG NGHỆ');
+
   return (
     <div className="flex-1 bg-[#f7f9fb] text-[#001839] antialiased flex flex-col h-full overflow-y-auto scrollbar-hide pb-28">
       {/* TopAppBar */}
@@ -36,6 +45,19 @@ export default function WelfareShoppingView({ onBack }: WelfareShoppingViewProps
             <div className="absolute inset-0 border border-transparent group-hover:border-[#b8860b]/50 transition-colors duration-300 rounded-xl"></div>
           </div>
         </motion.section>
+
+        {/* Dynamic Investment Projects */}
+        {shoppingProjects.length > 0 && (
+          <section className="mb-8 bg-zinc-950 p-5 rounded-2xl border border-[#ebd5ad]/20 text-white">
+            <h3 className="font-['Montserrat'] text-[18px] font-bold text-[#ebd5ad] mb-1 uppercase tracking-wide">Quỹ Phát Triển Thương Mại & Công Nghệ</h3>
+            <p className="text-[11px] text-zinc-400 mb-5 font-['Plus_Jakarta_Sans']">Đặc quyền đầu tư sinh lời cùng chuỗi trung tâm thương mại Vincom và phát triển công nghệ cao</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {shoppingProjects.map(project => (
+                <ProjectCard key={project.id} project={project} onInvest={() => setSelectedProject(project)} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Exclusive Vouchers Section */}
         <section className="mb-8">
@@ -109,6 +131,10 @@ export default function WelfareShoppingView({ onBack }: WelfareShoppingViewProps
           <p className="font-['Plus_Jakarta_Sans'] text-[13px] text-[#334155] text-center">Các ưu đãi áp dụng theo điều khoản và điều kiện của VinFast Invest và đối tác Vincom.</p>
         </section>
       </main>
+
+      {selectedProject && (
+        <InvestmentModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+      )}
     </div>
   );
 }
