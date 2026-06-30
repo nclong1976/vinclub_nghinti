@@ -13,6 +13,45 @@ import EditProfileModal from './EditProfileModal';
 import AccountVerification from './AccountVerification';
 import GoogleDriveSync from './GoogleDriveSync';
 import KeepNotes from './KeepNotes';
+import { sendMessageAsUser } from '../services/chatService';
+
+const readGroup = (group: string) => {
+  const readDigit = [ 'không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín' ];
+  let temp = '';
+  if (group === '000') return '';
+  const hundreds = parseInt(group[0]);
+  const tens = parseInt(group[1]);
+  const units = parseInt(group[2]);
+  if (hundreds > 0) temp += readDigit[hundreds] + ' trăm ';
+  if (tens === 0 && units > 0 && hundreds > 0) temp += 'lẻ ';
+  if (tens === 1) temp += 'mười ';
+  if (tens > 1) temp += readDigit[tens] + ' mươi ';
+  if (units === 1 && tens > 1) temp += 'mốt ';
+  else if (units === 5 && tens > 0) temp += 'lăm ';
+  else if (units > 0 && (tens > 1 || tens === 0 || tens === 1)) temp += readDigit[units] + ' ';
+  return temp;
+};
+
+const numberToWords = (num: number) => {
+  if (num === 0) return 'không đồng';
+  let str = num.toString();
+  const unitsList = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
+  let result = '';
+  let unitIndex = 0;
+  while (str.length > 0) {
+    let group = str.slice(-3);
+    str = str.slice(0, -3);
+    group = group.padStart(3, '0');
+    const groupText = readGroup(group);
+    if (groupText.trim() !== '') {
+      result = groupText + unitsList[unitIndex] + ' ' + result;
+    }
+    unitIndex++;
+  }
+  result = result.replace(/^không trăm (lẻ )?/g, '').trim();
+  result = result.charAt(0).toUpperCase() + result.slice(1) + ' đồng';
+  return result;
+};
 
 export default function Profile({ onBack, onHome, initialSubView, onNavigate }: { onBack: () => void, onHome: () => void, initialSubView?: string | null, onNavigate?: (view: string) => void }) {
   const { 
@@ -120,7 +159,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
   };
 
   // Deposit handler
-  const handleDepositSubmit = (e: React.FormEvent) => {
+  const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amt = Number(depositAmount.replace(/\D/g, ''));
     if (!amt || amt < 10000) {
@@ -128,16 +167,24 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
       return;
     }
     
-    addDepositRecord(amt, depositNote, depositProof || '');
-    showToast(`Đã tạo yêu cầu gửi tiền ${formatCurrency(amt)} thành công! Đang chuyển hướng đến CSKH...`, 'success');
+    // Instead of creating record, redirect to CSKH with pre-filled message
+    const formattedAmt = new Intl.NumberFormat('vi-VN').format(amt);
+    const amountInWords = numberToWords(amt);
+    const message = `Tôi tự nguyện đăng ký gửi số tiền ${formattedAmt} VND (${amountInWords}) vào hệ thống trung tâm của Công ty VinClub. Tôi xin cam kết và chịu trách nhiệm trước pháp luật rằng nguồn tiền trên là hoàn toàn hợp pháp.`;
+    
+    if (userId) {
+      await sendMessageAsUser(userId, message);
+    }
+
     setDepositAmount('');
     setDepositNote('');
     setDepositProof(null);
 
+    showToast(`Đang chuyển hướng đến CSKH...`, 'success');
     if (onNavigate) {
       onNavigate('cskh');
     } else {
-      setActiveSubView('deposits');
+      setActiveSubView('cskh');
     }
   };
 
@@ -1095,7 +1142,13 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
             {bankInfo ? (
               <div className="flex flex-col gap-4">
                 {/* Credit Card Style Render */}
-                <div className="relative w-full aspect-[1.6/1] rounded-2xl p-6 overflow-hidden bg-gradient-to-tr from-[#151922] via-[#242c3c] to-[#12161e] border border-zinc-700/80 shadow-2xl flex flex-col justify-between">
+                <div 
+                  className="relative w-full aspect-[1.6/1] rounded-2xl p-6 overflow-hidden border border-zinc-700/80 shadow-2xl flex flex-col justify-between bg-cover bg-center bg-no-repeat"
+                  style={{ 
+                    backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.3)), url("https://drive.google.com/uc?export=view&id=1bZFRwTyu__9InG4lnK1f6Xzacz5oQKOy")',
+                    backgroundColor: '#151922' 
+                  }}
+                >
                   {/* Chip & Bank Name */}
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col">
@@ -1409,59 +1462,157 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
 
   return (
     <div className="flex-1 overflow-y-auto pb-32 bg-[#fbfbf9] flex flex-col h-full relative pt-8">
-      {/* Tier Card */}
+      {/* Premium Tier Card */}
       <div className="px-4 mt-2">
-        <div className="rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative flex flex-col items-center bg-[#b48b3b] overflow-hidden w-full text-center">
-          {/* Subtle metal shine overlay */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/5 via-white/5 to-transparent pointer-events-none"></div>
-          
-          <div className="relative z-10 w-full flex flex-col items-center">
-            {/* Avatar */}
-            <div className="relative mb-3">
-               <div className="w-[84px] h-[84px] bg-[#f9e9c3] rounded-full flex items-center justify-center border-[3px] border-white overflow-hidden shadow-sm">
-                 {avatarImage ? (
-                    <img src={avatarImage} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <span className="text-[#b48b3b] text-3xl font-semibold font-['Montserrat'] tracking-wide">
-                      {displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'TT'}
-                    </span>
-                  )}
-               </div>
-               <button 
-                 onClick={() => setIsEditProfileOpen(true)} 
-                 className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 text-gray-500 hover:text-[#b48b3b] transition-colors active:scale-90"
-               >
-                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-               </button>
-            </div>
-            
-            <h2 className="text-white text-[20px] font-bold font-['Montserrat'] mb-1 tracking-wide">{displayName || 'Trần Duy Thái'}</h2>
-            <p className="text-white/80 text-[13px] font-['Plus_Jakarta_Sans'] mb-5 font-normal tracking-wide">{maskPhone(phoneNumber)}</p>
-  
-            {/* Divider line */}
-            <div className="w-full h-[1px] bg-white/20 mb-5"></div>
+        {(() => {
+          // Tier-based color system
+          const tierConfig: Record<string, {
+            bg: string; shimmer: string; badge: string; badgeText: string;
+            ring: string; avatarBg: string; avatarText: string; icon: string;
+          }> = {
+            Member: {
+              bg: 'linear-gradient(135deg, #9c7c3a 0%, #c8a84b 35%, #b48b3b 65%, #7a5e28 100%)',
+              shimmer: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)',
+              badge: 'rgba(255,255,255,0.18)',
+              badgeText: '#fff8e1',
+              ring: 'rgba(255,220,100,0.4)',
+              avatarBg: '#f9e9c3',
+              avatarText: '#8b6b2e',
+              icon: '🥈',
+            },
+            Gold: {
+              bg: 'linear-gradient(135deg, #7b5e1e 0%, #d4a843 30%, #ffd166 55%, #b8862a 80%, #6b4e18 100%)',
+              shimmer: 'linear-gradient(105deg, transparent 35%, rgba(255,245,150,0.25) 50%, transparent 65%)',
+              badge: 'rgba(255,215,80,0.25)',
+              badgeText: '#fff9c4',
+              ring: 'rgba(255,215,0,0.55)',
+              avatarBg: '#fff3c0',
+              avatarText: '#8b6000',
+              icon: '🥇',
+            },
+            VIP: {
+              bg: 'linear-gradient(135deg, #1a0533 0%, #4a1a6e 30%, #8b35cc 55%, #3d1060 80%, #0d0020 100%)',
+              shimmer: 'linear-gradient(105deg, transparent 35%, rgba(200,130,255,0.22) 50%, transparent 65%)',
+              badge: 'rgba(160,80,255,0.3)',
+              badgeText: '#e9d5ff',
+              ring: 'rgba(160,80,255,0.5)',
+              avatarBg: '#e9d5ff',
+              avatarText: '#6b21a8',
+              icon: '💎',
+            },
+            VVIP: {
+              bg: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #0a0a0a 100%)',
+              shimmer: 'linear-gradient(105deg, transparent 35%, rgba(100,200,255,0.18) 50%, transparent 65%)',
+              badge: 'rgba(30,120,255,0.3)',
+              badgeText: '#bae6fd',
+              ring: 'rgba(56,189,248,0.5)',
+              avatarBg: '#e0f2fe',
+              avatarText: '#075985',
+              icon: '👑',
+            },
+          };
 
-            <div className="w-full flex items-center">
-               <div className="flex-1 flex flex-col items-center">
-                  <span className="text-white font-extrabold text-[17px] font-['Montserrat'] uppercase tracking-wider">{tierName}</span>
-                  <span className="text-white/70 text-[11px] mt-0.5 font-['Plus_Jakarta_Sans'] font-medium">Hạng thành viên</span>
-               </div>
-               <div className="w-[1px] h-9 bg-white/20"></div>
-               <div className="flex-1 flex flex-col items-center">
-                  <div className="flex items-center justify-center text-white font-extrabold text-[17px] font-['Montserrat'] tracking-wide">
-                    {formatCurrency(balance).replace(' VNĐ', '')} 
-                    <div className="w-4.5 h-4.5 bg-[#f9e9c3] rounded-full flex items-center justify-center ml-1.5 shadow-sm text-[#b48b3b]">
-                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" />
-                      </svg>
-                    </div>
+          const cfg = tierConfig[tierName] || tierConfig['Member'];
+
+          return (
+            <div
+              className="rounded-[24px] overflow-hidden w-full shadow-[0_16px_48px_rgba(0,0,0,0.28)] relative"
+              style={{ background: cfg.bg }}
+            >
+              {/* Animated shimmer layer */}
+              <div
+                className="absolute inset-0 pointer-events-none animate-[shimmer_3.5s_ease-in-out_infinite]"
+                style={{ background: cfg.shimmer, backgroundSize: '200% 100%' }}
+              />
+              {/* Decorative circle top-right */}
+              <div className="absolute -top-14 -right-14 w-52 h-52 rounded-full opacity-10"
+                style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+              {/* Decorative circle bottom-left */}
+              <div className="absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10"
+                style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+
+              {/* Card Header: VinClub logo + tier badge */}
+              <div className="relative z-10 flex items-center justify-between px-5 pt-5 pb-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-white font-black text-[15px] tracking-[0.15em] font-['Montserrat'] drop-shadow">
+                    VIN<span className="opacity-70">CLUB</span>
                   </div>
-                  <span className="text-white/70 text-[11px] mt-0.5 font-['Plus_Jakarta_Sans'] font-medium">VND khả dụng</span>
-               </div>
+                </div>
+                <div
+                  className="px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase backdrop-blur-sm shadow-inner flex items-center gap-1.5"
+                  style={{ background: cfg.badge, color: cfg.badgeText, border: `1px solid ${cfg.ring}` }}
+                >
+                  <span>{cfg.icon}</span>
+                  <span>{tierName}</span>
+                </div>
+              </div>
+
+              {/* Avatar + Name section */}
+              <div className="relative z-10 flex flex-col items-center pt-4 pb-1">
+                {/* Avatar with glowing ring */}
+                <div className="relative mb-3">
+                  <div
+                    className="absolute inset-[-5px] rounded-full opacity-70 blur-[6px]"
+                    style={{ background: `radial-gradient(circle, ${cfg.ring} 0%, transparent 75%)` }}
+                  />
+                  <div
+                    className="w-[80px] h-[80px] rounded-full flex items-center justify-center border-[3px] border-white/60 overflow-hidden shadow-xl relative z-10"
+                    style={{ background: cfg.avatarBg }}
+                  >
+                    {avatarImage ? (
+                      <img src={avatarImage} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span className="text-3xl font-bold font-['Montserrat']" style={{ color: cfg.avatarText }}>
+                        {displayName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'VC'}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setIsEditProfileOpen(true)}
+                    className="absolute bottom-0 right-0 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-md border border-white/60 text-gray-500 hover:text-[#b48b3b] transition-colors active:scale-90 z-20"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                </div>
+
+                <h2 className="text-white text-[19px] font-bold font-['Montserrat'] mb-0.5 tracking-wide drop-shadow-sm">
+                  {displayName || 'Hội Viên VinClub'}
+                </h2>
+                <p className="text-white/65 text-[12px] font-['Plus_Jakarta_Sans'] font-medium tracking-widest mb-1">
+                  {maskPhone(phoneNumber)}
+                </p>
+              </div>
+
+              {/* Glass stats strip */}
+              <div className="relative z-10 mx-4 mb-4 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <div className="flex items-stretch">
+                  <div className="flex-1 flex flex-col items-center py-3 px-2">
+                    <span className="text-white font-extrabold text-[16px] font-['Montserrat'] uppercase tracking-wider leading-none">
+                      {tierName}
+                    </span>
+                    <span className="text-white/60 text-[10px] mt-1 font-['Plus_Jakarta_Sans'] font-medium">Hạng thành viên</span>
+                  </div>
+                  <div className="w-[1px] my-2" style={{ background: 'rgba(255,255,255,0.2)' }} />
+                  <div className="flex-1 flex flex-col items-center py-3 px-2">
+                    <div className="flex items-center gap-1.5 leading-none">
+                      <span className="text-white font-extrabold text-[15px] font-['Montserrat'] tracking-wide">
+                        {formatCurrency(balance).replace(' VNĐ', '')}
+                      </span>
+                      <div className="w-4 h-4 rounded-full flex items-center justify-center shadow-sm" style={{ background: cfg.avatarBg }}>
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" style={{ fill: cfg.avatarText }}>
+                          <circle cx="12" cy="12" r="10" />
+                        </svg>
+                      </div>
+                    </div>
+                    <span className="text-white/60 text-[10px] mt-1 font-['Plus_Jakarta_Sans'] font-medium">VND khả dụng</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
+
 
       {/* Warning Box / Verified Status */}
       {/* Warning Box / Verified Status */}

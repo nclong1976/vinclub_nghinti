@@ -752,15 +752,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const checkAndApplyInterest = async () => {
       if (!isUserDocLoaded) return;
+      if (totalDeposit === 0) return; // Logic change: only apply interest if user has a valid deposit
+
       const activeId = userId;
       const now = new Date();
       let lastPaidStr = lastInterestPaidDate;
 
       if (!lastPaidStr) {
-        // If never paid, set to yesterday so it triggers today
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        lastPaidStr = yesterday.toISOString().split('T')[0];
+        // If never paid (first time checking after a deposit), set to today
+        // so it starts triggering tomorrow.
+        lastPaidStr = now.toISOString().split('T')[0];
 
         try {
           await setDoc(doc(db, 'users', activeId), { lastInterestPaidDate: lastPaidStr }, { merge: true });

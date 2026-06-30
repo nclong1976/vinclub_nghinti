@@ -15,70 +15,13 @@ export default function AllNewsView({ onBack, onNavigateNews }: AllNewsViewProps
   const combined: any[] = [];
   const seenIds = new Set<string>();
 
-  // 1. Add CMS news
-  cmsNews.forEach((news: any) => {
+  // Use only CMS news managed by Admin
+  (cmsNews || []).forEach((news: any) => {
     if (news && news.id) {
-      seenIds.add(news.id);
-      combined.push(news);
-    }
-  });
-
-  // 2. Add Firestore articles collection (seeded list and user additions)
-  articlesList.forEach((news: any) => {
-    if (news && news.id && !seenIds.has(news.id)) {
-      seenIds.add(news.id);
-      combined.push({
-        id: news.id,
-        title: news.title,
-        category: news.category || 'Tin tức',
-        image: news.imageUrl || news.image || 'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?q=80&w=800',
-        date: news.date || 'Hôm nay',
-        content: news.content || '',
-        author: news.author || 'Ban Biên Tập'
-      });
-    }
-  });
-
-  // 3. Add original core static news as fallback if they aren't included
-  const coreStaticNews = [
-    {
-      id: 'viettel_idc_vingroup',
-      title: 'Cộng hưởng sức mạnh: Viettel IDC và Vingroup bắt tay nâng cấp toàn diện hệ sinh thái VinClub',
-      category: 'Tin tức hợp tác',
-      image: viettelIdcImage,
-      date: '26 Th06, 2026',
-      author: 'VinClub News'
-    },
-    {
-      id: 'vf8_2022',
-      title: 'Dấu ấn VF 8 2022: Ô tô điện Việt Nam vươn tầm thế giới',
-      category: 'Tin tức VinFast',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDyCc4Qoq8kyofdXBrLbmR8ddJwJ9-2DPWzDAbrNZZw4q_MoGr1YJVhHZiyOyXdpvpXPb4IN6HKlPvY-EvdqlRkhzt5QXa01EKyRkTJk0UPIrC9lIYL4PkYpnlYgGhQQPKlUrw4_iUQEwOS6rg8ygp9JjELCxtG7rlyCAR4e90sPlOWlAIy9LvjE7UZcrAflzVxVGmwG71pQN92-4dMJSxA6W3DAgkpHAwTzpPNXo4EizkvEmRuowlnHgF-A2wBKekCIHXiTDT6nn0',
-      date: '25 Th06, 2026',
-      author: 'VinFast News'
-    },
-    {
-      id: 'stations',
-      title: 'Hệ thống trạm sạc thông minh phủ sóng toàn quốc',
-      category: 'Hệ sinh thái',
-      image: 'https://lh3.googleusercontent.com/aida/AP1WRLvZWBkBQLreNDuqVmR_wuzFG0k2QIM1DOMR-ZMpS5DRezuNNzVUVw9lMkWpgxMBFw2g3GJxHyQ8GeWXV_WayZauS5-108wukYNM6c7kffFYnHKVpfqo5T7rCqfyb6iOHbShCIQinH66eyMQ3Wo9ukU4B8GxEyVh6u8ULoJ0pAaIDdlSNe9zQ4I87ME6DUPxcwEtn41fZWZFYDX9RNEnOjjKwRPhezwGNgtGIy78Dl_Yd5HyfgE59oEfDxs',
-      date: '24 Th06, 2026',
-      author: 'VinFast News'
-    },
-    {
-      id: 'app',
-      title: 'Công nghệ điều khiển thông minh qua ứng dụng VinFast',
-      category: 'Công nghệ',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA3pApHIixibJvbua8jNv134XdqsMGn1bWVL41PCtaMTTiyADwdVHFr4MdVnHt8Gi2Un6h076SLVLzwmTBWm8Xes4PtgEeVBSHy57ummWSa342XRaO5KP_kogAhDXAteIMejIpXAgMCB9UBzDM7gI-TSoXMajTfFwHdH2H4N6qi_XN23x335eZMwBgiBxu2xnVj2C5RD2Ds8HueAz4XwX8XJgO0B1EKnm9kEk64MCw98bgMfuq6KcIh2DbvrXHv_kmTsN6_2m-Qk9o',
-      date: '23 Th06, 2026',
-      author: 'VinFast News'
-    }
-  ];
-
-  coreStaticNews.forEach((news: any) => {
-    if (!seenIds.has(news.id)) {
-      seenIds.add(news.id);
-      combined.push(news);
+      if (!seenIds.has(news.id)) {
+        seenIds.add(news.id);
+        combined.push(news);
+      }
     }
   });
 

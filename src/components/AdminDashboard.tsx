@@ -1786,30 +1786,32 @@ export default function AdminDashboard() {
             {/* Sub-grids */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 overflow-hidden">
               
-              {/* Left Column: Participating Projects & Actions */}
               <div className="space-y-4 flex flex-col justify-between">
                 
-                {/* Active Projects */}
-                <div className="bg-zinc-950/40 p-4 rounded-xl border border-zinc-850 flex-1 flex flex-col justify-between min-h-[160px]">
+                {/* Personal Info & KYC */}
+                <div className="bg-zinc-950/40 p-4 rounded-xl border border-zinc-850">
                   <h4 className="font-bold text-xs text-[#ebd5ad] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5" /> Góp vốn tham gia
+                    <User className="w-3.5 h-3.5" /> Thông tin cá nhân & KYC
                   </h4>
-                  <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                    {getUserStats(selectedUser).activeInvests.map((inv: any) => (
-                      <div key={inv.id} className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-850 text-[11px] flex justify-between items-center gap-2">
-                        <div className="truncate font-semibold text-zinc-300">
-                          {inv.contractProjectTitle || 'Dự án VinClub'}
-                        </div>
-                        <span className="text-[#c29b57] font-bold shrink-0">
-                          {inv.amount.toLocaleString('vi-VN')} VNĐ
-                        </span>
-                      </div>
-                    ))}
-                    {getUserStats(selectedUser).activeInvests.length === 0 && (
-                      <p className="text-[11px] text-zinc-650 italic text-center py-6">
-                        Chưa tham gia dự án nào.
-                      </p>
-                    )}
+                  <div className="space-y-2 text-[11px] text-zinc-300">
+                    <div className="flex justify-between border-b border-zinc-800 pb-1">
+                      <span className="text-zinc-500">CCCD/CMND:</span>
+                      <span className="font-bold">{selectedUser.cccd || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-zinc-800 pb-1">
+                      <span className="text-zinc-500">Năm sinh:</span>
+                      <span className="font-bold">{selectedUser.birthYear || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-zinc-800 pb-1">
+                      <span className="text-zinc-500">Địa chỉ:</span>
+                      <span className="font-bold truncate max-w-[150px]" title={selectedUser.address}>{selectedUser.address || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between pb-1">
+                      <span className="text-zinc-500">KYC Status:</span>
+                      <span className={`font-bold uppercase ${selectedUser.kycStatus === 'verified' ? 'text-emerald-400' : selectedUser.kycStatus === 'rejected' ? 'text-rose-400' : 'text-amber-400'}`}>
+                        {selectedUser.kycStatus || 'Chưa KYC'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -2150,15 +2152,27 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-450 font-bold">URL Hình ảnh</label>
-                <input 
-                  type="text"
-                  value={newsForm.image}
-                  onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
-                  placeholder="Dán link ảnh (https://...)"
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-zinc-450 font-bold">URL Hình ảnh</label>
+                  <input 
+                    type="text"
+                    value={newsForm.image}
+                    onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
+                    placeholder="Dán link ảnh (https://...)"
+                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-zinc-450 font-bold">Ngày đăng</label>
+                  <input 
+                    type="text"
+                    value={newsForm.date}
+                    onChange={(e) => setNewsForm({ ...newsForm, date: e.target.value })}
+                    placeholder="VD: 20 Th06, 2026"
+                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c29b57] transition-colors"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
