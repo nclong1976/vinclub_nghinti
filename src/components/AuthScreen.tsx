@@ -30,9 +30,9 @@ export default function AuthScreen() {
 
   // High fidelity Logo Component
   const VinLogos = () => (
-    <div className="flex items-center justify-center mt-6 mb-8 select-none">
-      {/* Left side: VINPEARL */}
-      <div className="flex flex-col items-center justify-center w-14 h-14">
+    <div className="flex items-center justify-center mt-6 mb-8 select-none gap-0">
+      {/* Left side: VINPEARL - horizontal brand mark, needs wider container */}
+      <div className="flex items-center justify-center" style={{ width: '110px', height: '48px' }}>
         <img 
           src={vinpearlIcon} 
           alt="VINPEARL Logo" 
@@ -42,14 +42,14 @@ export default function AuthScreen() {
       </div>
 
       {/* Vertical line divider */}
-      <div className="h-12 w-[1px] bg-[#1a2d6c]/20 mx-4"></div>
+      <div className="h-10 w-[1px] bg-[#1a2d6c]/20 mx-3"></div>
 
       {/* Right side: VINCLUB */}
-      <div className="flex flex-col items-center justify-center w-32">
+      <div className="flex flex-col items-center justify-center" style={{ width: '110px', height: '48px' }}>
         <img 
           src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwXuMhpBwyfDQQdAxquYpUvV5Qwt-Pdao-vS3KYHl5yg&s" 
           alt="VINCLUB Logo" 
-          className="w-full h-auto object-contain"
+          className="w-full h-full object-contain"
           referrerPolicy="no-referrer"
         />
       </div>

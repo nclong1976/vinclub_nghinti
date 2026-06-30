@@ -414,10 +414,10 @@ export default function HomeView({
           onClick={() => onNavigate('vinpearl_projects')}
           className="flex flex-col items-center text-center cursor-pointer group outline-none"
         >
-          <div className="service-icon-container mb-2">
-            <img alt="Vinpearl" className="w-8 h-8 object-contain" src={vinpearlIcon} />
+          <div className="service-icon-container mb-2 w-12 h-12 flex items-center justify-center">
+            <img alt="Vinpearl" className="w-12 h-10 object-contain" src={vinpearlIcon} />
           </div>
-          <span className="text-[11px] font-bold leading-tight text-gray-700 group-hover:text-amber-700 transition-colors">Vinpearl<br/><br/></span>
+          <span className="text-[11px] font-bold leading-tight text-gray-700 group-hover:text-amber-700 transition-colors">Vinpearl</span>
         </button>
 
         {/* Item 3: VinFast */}
