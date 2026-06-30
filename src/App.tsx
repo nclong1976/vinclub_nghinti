@@ -1,3 +1,4 @@
+import SplashScreen from './components/SplashScreen';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -36,7 +37,7 @@ import { usePresence } from './hooks/usePresence';
 export type ViewState = 'home' | 'projects' | 'stockList' | 'stockDetail' | 'casino' | 'profile' | 'cskh' | 'vinfast' | 'welfare_consultation' | 'news_detail' | 'investment_reasons' | 'welfare_resort' | 'welfare_education' | 'welfare_medical' | 'welfare_shopping' | 'welfare_vinhomes' | 'vinpearl_projects' | 'vinpearl_project_detail' | 'vinpearl_invest' | 'all_news' | 'cardRanking';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewState>('home');
+  const [showSplash, setShowSplash] = useState(true);   const [currentView, setCurrentView] = useState<ViewState>('home');
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const { isEditMode, setIsEditMode } = useImage();
   const { isLoggedIn, getAdjustedStocks, role, termsAccepted, updateUserField, displayName } = useUser();
@@ -65,7 +66,7 @@ export default function App() {
     seedDatabase();
   }, []);
 
-  if (!isLoggedIn) {
+  if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;    if (!isLoggedIn) {
     return (
       <div id="unauthenticated-app-container" className="min-h-screen bg-[#050505] text-zinc-800 font-sans flex items-center justify-center p-0 md:p-4">
         <div className="w-full max-w-md bg-white min-h-screen md:min-h-[85vh] md:max-h-[92vh] md:rounded-2xl relative shadow-2xl flex flex-col overflow-hidden border border-zinc-800/10">
