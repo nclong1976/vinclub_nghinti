@@ -357,7 +357,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
     .filter(t => t.type === 'deposit' && t.status === 'Thành công')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  let tierImage = 'https://statics.vinpearl.com/vinclub-member_1723049424.png';
+  let tierImage = 'https://ilhzsadfwezqljvrbpwt.supabase.co/storage/v1/object/public/vinclub/Screenshot_19.png';
   let tierName = 'Member';
   if (totalDeposit >= 10000000000) {
     tierImage = 'https://storage.googleapis.com/loyalty-public-arczn36dnada/240807164519_previous_photo_card_efd6a076-7d73-46e2-ac0c-713d2dca20f7.jpg';
@@ -1145,7 +1145,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
                 <div 
                   className="relative w-full aspect-[1.6/1] rounded-2xl p-6 overflow-hidden border border-zinc-700/80 shadow-2xl flex flex-col justify-between bg-cover bg-center bg-no-repeat"
                   style={{ 
-                    backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.3)), url("https://drive.google.com/uc?export=view&id=1bZFRwTyu__9InG4lnK1f6Xzacz5oQKOy")',
+                    backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.25)), url("https://ilhzsadfwezqljvrbpwt.supabase.co/storage/v1/object/public/vinclub/Screenshot_18.png")',
                     backgroundColor: '#151922' 
                   }}
                 >

@@ -57,7 +57,7 @@ export default function CardRankingView({ onBack }: CardRankingViewProps) {
       accent: "text-zinc-400",
       glow: "rgba(255,255,255,0.05)",
       label: "MEMBER",
-      bgImage: "https://statics.vinpearl.com/vinclub-member_1723049424.png"
+      bgImage: "https://ilhzsadfwezqljvrbpwt.supabase.co/storage/v1/object/public/vinclub/Screenshot_19.png"
     },
     Gold: {
       bg: "bg-gradient-to-br from-[#f5d061] via-[#c29b57] to-[#8c6b30]",
@@ -350,7 +350,7 @@ export default function CardRankingView({ onBack }: CardRankingViewProps) {
               <img 
                 alt="Member"
                 className="w-full h-full object-cover" 
-                src="https://statics.vinpearl.com/vinclub-member_1723049424.png"
+                src="https://ilhzsadfwezqljvrbpwt.supabase.co/storage/v1/object/public/vinclub/Screenshot_19.png"
               />
             </div>
             <h3 className="font-['Montserrat'] text-[18px] font-bold text-[#001839]">Member</h3>

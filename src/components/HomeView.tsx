@@ -5,7 +5,7 @@ import { ViewState } from '../App';
 import viettelIdcImage from '../assets/images/regenerated_image_1782460662494.jpg';
 import newNewsImage from '../assets/images/regenerated_image_1782512288743.jpg';
 import vinfastIcon from '../assets/images/logo-vinfast-1.png';
-import vinpearlIcon from '../assets/images/logo-vinpearl-1.png';
+const vinpearlIcon = 'https://ircdn.vingroup.net/storage/public/2019/07/logo_Vinpearl-20190724T075858560451.png';
 import { db } from '../firebase';
 import { doc, onSnapshot, collection, query } from 'firebase/firestore';
 import NotificationsPanel from './NotificationsPanel';

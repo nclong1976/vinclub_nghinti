@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useUser } from './UserContext';
 import { Eye, EyeOff, CheckCircle, ChevronRight } from 'lucide-react';
-import vinpearlIcon from '../assets/images/logo-vinpearl-1.png';
+const vinpearlIcon = 'https://ircdn.vingroup.net/storage/public/2019/07/logo_Vinpearl-20190724T075858560451.png';
 
 export default function AuthScreen() {
   const { login, register } = useUser();
