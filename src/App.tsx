@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import BottomNav from './components/BottomNav';
 import ProjectList from './components/ProjectList';
 import StockList from './components/StockList';
@@ -369,6 +370,7 @@ export default function App() {
           }} />
         )}
       </div>
+      <SpeedInsights />
     </EditableImage>
   );
 }
