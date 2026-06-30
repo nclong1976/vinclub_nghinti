@@ -538,7 +538,7 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
                   </div>
                   <div className="flex justify-between items-center text-xs mt-1">
                     <span className="text-zinc-500">Số tài khoản:</span>
-                    <span className="text-zinc-300 font-mono">{bankInfo.bankAccount}</span>
+                    <span className="text-zinc-300 font-mono">{bankInfo.bankAccount ? ("*****" + bankInfo.bankAccount.substring(5)) : ""}</span>
                   </div>
                 </div>
 
@@ -1107,7 +1107,25 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
 
                   {/* Card Number */}
                   <div className="text-zinc-200 text-lg sm:text-xl font-mono tracking-[0.25em] my-2">
-                    {bankInfo.bankAccount.replace(/(.{4})/g, '$1 ')}
+                    {(() => {
+                      const formatted = bankInfo.bankAccount.replace(/(.{4})/g, '$1 ').trim();
+                      let digitCount = 0;
+                      let result = '';
+                      for (let i = 0; i < formatted.length; i++) {
+                        const char = formatted[i];
+                        if (char >= '0' && char <= '9') {
+                          if (digitCount < 5) {
+                            result += '*';
+                            digitCount++;
+                          } else {
+                            result += char;
+                          }
+                        } else {
+                          result += char;
+                        }
+                      }
+                      return result;
+                    })()}
                   </div>
 
                   {/* Card Holder */}
