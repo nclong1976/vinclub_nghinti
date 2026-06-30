@@ -1625,6 +1625,204 @@ export default function AdminDashboard() {
           </motion.div>
         </div>
       )}
+
+      {/* Project Add/Edit Modal */}
+      {isProjectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl flex flex-col relative max-h-[90vh]"
+          >
+            <button 
+              onClick={() => setIsProjectModalOpen(false)}
+              className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="p-6 border-b border-zinc-800">
+              <h3 className="font-['Montserrat'] text-base font-bold text-[#ebd5ad] uppercase tracking-wider">
+                {editingProject ? 'Chỉnh Sửa Dự Án' : 'Thêm Dự Án Mới'}
+              </h3>
+              <p className="text-[10px] text-zinc-500 mt-1">Điền đầy đủ các thông tin của gói đầu tư vào các trường dưới đây</p>
+            </div>
+
+            <form onSubmit={handleSaveProject} className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Tên dự án / Dòng xe</label>
+                <input 
+                  type="text" 
+                  value={projectForm.title}
+                  onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
+                  placeholder="Nhập tên dự án hoặc dòng xe..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Mã ID (Duy nhất)</label>
+                  <input 
+                    type="text" 
+                    value={projectForm.id}
+                    disabled={!!editingProject}
+                    onChange={(e) => setProjectForm({ ...projectForm, id: e.target.value })}
+                    placeholder="Ví dụ: vf-3, vp-3, vh-royal-island..."
+                    className="w-full bg-zinc-950 disabled:opacity-50 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Phân loại (Category)</label>
+                  <select 
+                    value={projectForm.category}
+                    onChange={(e) => setProjectForm({ ...projectForm, category: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                  >
+                    <option value="GIÁO DỤC">Đầu tư Chung: GIÁO DỤC</option>
+                    <option value="Y TẾ">Đầu tư Chung: Y TẾ</option>
+                    <option value="THƯƠNG MẠI">Đầu tư Chung: THƯƠNG MẠI</option>
+                    <option value="CÔNG NGHỆ">Đầu tư Chung: CÔNG NGHỆ</option>
+                    <option value="VINFAST">VinFast (VINFAST)</option>
+                    <option value="Vinpearl">Vinpearl (Vinpearl)</option>
+                    <option value="Vinhomes">Vinhomes (Vinhomes)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Đường dẫn hình ảnh (URL)</label>
+                <input 
+                  type="text" 
+                  value={projectForm.imageUrl}
+                  onChange={(e) => setProjectForm({ ...projectForm, imageUrl: e.target.value })}
+                  placeholder="https://example.com/image.png"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Tỷ lệ Lãi suất (%) / Lợi nhuận</label>
+                  <input 
+                    type="text" 
+                    value={projectForm.interestRate}
+                    onChange={(e) => setProjectForm({ ...projectForm, interestRate: e.target.value })}
+                    placeholder="Ví dụ: 1.40 % hoặc 0.8%"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Giá trị số lãi suất (Thập phân)</label>
+                  <input 
+                    type="number" 
+                    step="0.0001"
+                    value={projectForm.interestRateValue}
+                    onChange={(e) => setProjectForm({ ...projectForm, interestRateValue: Number(e.target.value) })}
+                    placeholder="Ví dụ: 0.014"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Thời hạn hiển thị (chuỗi)</label>
+                  <input 
+                    type="text" 
+                    value={projectForm.duration}
+                    onChange={(e) => setProjectForm({ ...projectForm, duration: e.target.value })}
+                    placeholder="Ví dụ: 8640 phút hoặc 6 ngày"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Thời hạn (số ngày)</label>
+                  <input 
+                    type="number" 
+                    value={projectForm.durationDays}
+                    onChange={(e) => setProjectForm({ ...projectForm, durationDays: Number(e.target.value) })}
+                    placeholder="Ví dụ: 6"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Mức tối thiểu (chuỗi)</label>
+                  <input 
+                    type="text" 
+                    value={projectForm.minAmount}
+                    onChange={(e) => setProjectForm({ ...projectForm, minAmount: e.target.value })}
+                    placeholder="Ví dụ: 30.000.000 VNĐ"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Mức tối thiểu (số)</label>
+                  <input 
+                    type="number" 
+                    value={projectForm.minInvestAmount}
+                    onChange={(e) => setProjectForm({ ...projectForm, minInvestAmount: Number(e.target.value) })}
+                    placeholder="Ví dụ: 30000000"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Quy mô vốn / Địa điểm</label>
+                  <input 
+                    type="text" 
+                    value={projectForm.scale}
+                    onChange={(e) => setProjectForm({ ...projectForm, scale: e.target.value })}
+                    placeholder="Ví dụ: 10.300.000.000 VNĐ hoặc Vũ Yên, Hải Phòng"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">Tiến độ (%)</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max="100"
+                    value={projectForm.progress}
+                    onChange={(e) => setProjectForm({ ...projectForm, progress: Number(e.target.value) })}
+                    placeholder="Ví dụ: 97"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-[#c29b57]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-800 flex gap-3 shrink-0">
+                <button 
+                  type="button"
+                  onClick={() => setIsProjectModalOpen(false)}
+                  className="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold text-xs cursor-pointer text-center hover:bg-zinc-750"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 bg-[#c29b57] text-black py-3 rounded-xl font-black text-xs cursor-pointer text-center hover:bg-[#ebd5ad] shadow-md"
+                >
+                  Xác nhận lưu
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
