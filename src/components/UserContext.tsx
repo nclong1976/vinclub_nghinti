@@ -324,6 +324,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [systemInstructions, setSystemInstructionsState] = useState<string>('');
   const [lastInterestPaidDate, setLastInterestPaidDate] = useState<string | null>(null);
   const [forceActiveStockRules, setForceActiveStockRules] = useState<boolean>(false);
+  const [isUserDocLoaded, setIsUserDocLoaded] = useState(false);
 
   // CMS State
   const [cmsNews, setCmsNewsState] = useState<any[]>([]);
@@ -360,6 +361,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Real-time Firestore synchronizer
   useEffect(() => {
+    setIsUserDocLoaded(false);
     const activeId = userId || 'profile';
     const docRef = doc(db, 'users', activeId);
 
@@ -528,6 +530,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (data.portfolio !== undefined) setPortfolioState(data.portfolio);
         if (data.orderHistory !== undefined) setOrderHistoryState(data.orderHistory);
         if (data.keepNotes !== undefined) setKeepNotesState(data.keepNotes);
+        setIsUserDocLoaded(true);
       } else {
         // Seed initial values to Firestore
         let seedRole = 'user';
@@ -745,6 +748,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     const checkAndApplyInterest = async () => {
+      if (!isUserDocLoaded) return;
       const activeId = userId;
       const now = new Date();
       let lastPaidStr = lastInterestPaidDate;
@@ -774,18 +778,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       for (const dueDate of datesDue) {
         // Determine rate & base calculation amount dynamically in loop
-        let currentRate = 0.006;
-        let currentBase = tempBalance;
-
-        if (userTier === 'Gold' || userTier === 'VIP' || userTier === 'VVIP') {
-          currentRate = 0.01;
-          const activeInvestmentsTotal = getActiveInvestmentsTotal(transactions);
-          currentBase = tempBalance + activeInvestmentsTotal;
-        } else {
-          if (hasActiveInvestments(transactions)) {
-            continue; // Member doesn't get interest on balance if there is an active investment
-          }
+        let currentRate = 0.004; // Member 0.4%
+        if (userTier === 'Gold') {
+          currentRate = 0.008; // Gold 0.8%
+        } else if (userTier === 'VIP') {
+          currentRate = 0.014; // VIP 1.4%
+        } else if (userTier === 'VVIP') {
+          currentRate = 0.02; // VVIP 2.0%
         }
+
+        const activeInvestmentsTotal = getActiveInvestmentsTotal(transactions);
+        const currentBase = tempBalance + activeInvestmentsTotal;
 
         const interestAmount = Math.round(currentBase * currentRate);
         if (interestAmount <= 0) continue;
@@ -841,7 +844,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const interval = setInterval(checkAndApplyInterest, 60000);
     return () => clearInterval(interval);
-  }, [isLoggedIn, userId, interestRate, systemInstructions, balance, lastInterestPaidDate]);
+  }, [isLoggedIn, userId, interestRate, systemInstructions, balance, lastInterestPaidDate, isUserDocLoaded]);
 
   // Sync user profile to Realtime Database for Admin CSKH
   useEffect(() => {

@@ -271,12 +271,32 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
       return;
     }
 
-    const totalDepositAmt = transactions
-      .filter(t => t.type === 'deposit' && t.status === 'Thành công')
+    // Check KYC status first
+    if (!isIdentityVerified && kycStatus !== 'verified') {
+      showToast('Tài khoản phải được xác thực thành công (KYC) mới được điểm danh hàng ngày!', 'error');
+      return;
+    }
+
+    // Check deposits of the current day
+    const todayStrEnCA = new Date().toLocaleDateString('en-CA');
+    const todayStrViVN = new Date().toLocaleDateString('vi-VN');
+    
+    const todayDepositAmt = transactions
+      .filter(t => {
+        if (t.type !== 'deposit' || t.status !== 'Thành công') return false;
+        if (t.timestamp) {
+          const txDateStr = new Date(t.timestamp).toLocaleDateString('en-CA');
+          if (txDateStr === todayStrEnCA) return true;
+        }
+        if (t.date) {
+          if (t.date.includes(todayStrViVN) || t.date === todayStrViVN) return true;
+        }
+        return false;
+      })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    if (totalDepositAmt < 2000000) {
-      showToast('Tài khoản phải nạp tiền từ 2.000.000 VNĐ trở lên mới được điểm danh hàng ngày!', 'error');
+    if (todayDepositAmt < 2000000) {
+      showToast('Tài khoản phải nạp tiền từ 2.000.000 VNĐ trở lên trong ngày hôm nay mới được điểm danh!', 'error');
       return;
     }
 
