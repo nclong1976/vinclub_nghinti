@@ -1467,15 +1467,17 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
         {(() => {
           // Tier-based color system
           const tierConfig: Record<string, {
-            bg: string; shimmer: string; badge: string; badgeText: string;
+            bg: string; bgImage?: string; overlay?: string; shimmer: string; badge: string; badgeText: string;
             ring: string; avatarBg: string; avatarText: string; icon: string;
           }> = {
             Member: {
-              bg: 'linear-gradient(135deg, #9c7c3a 0%, #c8a84b 35%, #b48b3b 65%, #7a5e28 100%)',
-              shimmer: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)',
-              badge: 'rgba(255,255,255,0.18)',
+              bg: '#b48b3b',
+              bgImage: 'https://ilhzsadfwezqljvrbpwt.supabase.co/storage/v1/object/public/vinclub/Screenshot_19.png',
+              overlay: 'linear-gradient(135deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 100%)',
+              shimmer: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)',
+              badge: 'rgba(255,255,255,0.22)',
               badgeText: '#fff8e1',
-              ring: 'rgba(255,220,100,0.4)',
+              ring: 'rgba(255,220,100,0.5)',
               avatarBg: '#f9e9c3',
               avatarText: '#8b6b2e',
               icon: '🥈',
@@ -1516,8 +1518,16 @@ export default function Profile({ onBack, onHome, initialSubView, onNavigate }: 
 
           return (
             <div
-              className="rounded-[24px] overflow-hidden w-full shadow-[0_16px_48px_rgba(0,0,0,0.28)] relative"
-              style={{ background: cfg.bg }}
+              className="rounded-[24px] overflow-hidden w-full shadow-[0_16px_48px_rgba(0,0,0,0.32)] relative"
+              style={{
+                background: cfg.bgImage
+                  ? `${cfg.overlay ? cfg.overlay + ',' : ''} url('${cfg.bgImage}')`
+                  : cfg.bg,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundColor: cfg.bg,
+              }}
             >
               {/* Animated shimmer layer */}
               <div
