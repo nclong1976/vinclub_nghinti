@@ -308,8 +308,8 @@ Sự kiện bàn giao dự án lần này là minh chứng rõ nét cho thấy: 
         },
         {
           id: 'notif-3',
-          title: 'Nhận Ngay 1,000 VPoint Thưởng Chào Mừng',
-          content: 'VinClub đã cộng trực tiếp 1,000 VPoint (trị giá vô thời hạn) vào tài khoản tiêu dùng của quý khách. Bạn có thể sử dụng VPoint để thanh toán cước viễn thông Viettel, mua sắm tại FPT Shop, đổi voucher ẩm thực tại Starbucks, Pizza 4Ps qua đối tác UrBox, hoặc quy đổi sang dặm bay Vietjet Air.',
+          title: 'Nhận Ngay 50.000 VND Khi Kích Hoạt Thẻ Thành Viên VinClub',
+          content: 'Nhận ngay 50.000 VND vào tài khoản khi kích hoạt thành công thẻ thành viên VinClub. Số tiền thưởng sẽ được cộng trực tiếp vào số dư tài khoản của bạn và có thể sử dụng cho các giao dịch đầu tư hoặc nạp rút trong hệ sinh thái VinClub.',
           type: 'promotion',
           date: '24/06/2026',
           createdAt: Date.now() - 86400000

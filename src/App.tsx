@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import BottomNav from './components/BottomNav';
 import ProjectList from './components/ProjectList';
@@ -46,6 +46,44 @@ export default function App() {
     // Run seeding in background so it never blocks the user from entering the app
     seedDatabase();
   }, []);
+
+  // ── Splash video state ──────────────────────────────────────
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
+    return !sessionStorage.getItem('splash-shown');
+  });
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleSplashEnd = () => {
+    sessionStorage.setItem('splash-shown', '1');
+    setShowSplash(false);
+  };
+
+  // ── Splash Screen ───────────────────────────────────────────
+  if (showSplash) {
+    return (
+      <div
+        className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+        style={{ touchAction: 'none' }}
+      >
+        <video
+          ref={videoRef}
+          src="https://ilhzsadfwezqljvrbpwt.supabase.co/storage/v1/object/public/vinclub/Video%20banner_1672911651.mp4"
+          autoPlay
+          muted
+          playsInline
+          onEnded={handleSplashEnd}
+          className="w-full h-full object-cover"
+          style={{ maxWidth: '100vw', maxHeight: '100vh' }}
+        />
+        <button
+          onClick={handleSplashEnd}
+          className="absolute bottom-10 right-6 px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 text-white text-xs font-bold tracking-widest uppercase transition-all hover:bg-white/20 active:scale-95"
+        >
+          Bỏ qua ›
+        </button>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
