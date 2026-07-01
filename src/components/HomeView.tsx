@@ -10,12 +10,10 @@ import { doc, onSnapshot } from 'firebase/firestore';
 
 interface HomeViewProps {
   onNavigate: (view: ViewState, subView?: string | null) => void;
-  onNavigateToAdmin: () => void;
 }
 
 export default function HomeView({
-  onNavigate,
-  onNavigateToAdmin
+  onNavigate
 }: HomeViewProps) {
   const { displayName, balance, cmsNews, articlesList } = useUser();
   const [tickerMessages, setTickerMessages] = useState<string[]>([
@@ -176,13 +174,6 @@ export default function HomeView({
             </div>
           </div>
         </div>
-        <button 
-          onClick={onNavigateToAdmin}
-          className="flex items-center gap-1 ml-2 flex-shrink-0 hover:opacity-80 transition-all cursor-pointer"
-        >
-          <span className="text-[#00FF00] text-xs">✦</span>
-          <span className="text-xs font-black text-[#00FF00] uppercase tracking-wide">Hội</span>
-        </button>
       </div>
 
       {/* Header Profile Info */}

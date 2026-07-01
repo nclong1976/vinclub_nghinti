@@ -6,7 +6,6 @@ import StockList from './components/StockList';
 import StockDetail from './components/StockDetail';
 import CasinoList from './components/CasinoList';
 import Profile from './components/Profile';
-import AdminConsole from './components/AdminConsole';
 import UserCSKH from './components/UserCSKH';
 import VinfastView from './components/VinfastView';
 import WelfareConsultationView from './components/WelfareConsultationView';
@@ -62,19 +61,6 @@ export default function App() {
     setCurrentView('stockDetail');
   };
 
-  if (currentView === 'admin') {
-    return (
-      <EditableImage
-        imageKey="app-background"
-        defaultSrc=""
-        className="min-h-screen bg-black text-white font-sans selection:bg-[#c29b57] selection:text-black flex flex-col overflow-hidden"
-        isBackground={true}
-      >
-        <AdminConsole onBack={() => setCurrentView('home')} />
-      </EditableImage>
-    );
-  }
-
   return (
     <EditableImage
       imageKey="app-background"
@@ -117,7 +103,6 @@ export default function App() {
                   setProfileSubView(subView || null);
                   setCurrentView(view);
                 }}
-                onNavigateToAdmin={() => setCurrentView('admin')}
               />
             ) : currentView === 'projects' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#0b0b0b]">
@@ -148,12 +133,11 @@ export default function App() {
                   onBack={() => setCurrentView('home')} 
                   onHome={() => setCurrentView('home')} 
                   initialSubView={profileSubView} 
-                  onNavigateToAdmin={() => setCurrentView('admin')}
                 />
               </div>
             ) : currentView === 'cskh' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#f7f9fb]">
-                <UserCSKH onBack={() => setCurrentView('home')} onNavigateToAdmin={() => setCurrentView('admin')} />
+                <UserCSKH onBack={() => setCurrentView('home')} />
               </div>
             ) : currentView === 'vinfast' ? (
               <div className="flex-1 overflow-hidden flex flex-col bg-[#0b0b0b]">
