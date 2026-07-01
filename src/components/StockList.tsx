@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, getDocs, query } from 'firebase/firestore';
 import { ChevronLeft } from 'lucide-react';
 import { Stock } from '../types';
 import { UserContext } from './UserContext';
@@ -10,26 +10,26 @@ export default function StockList({ onBack, onSelectStock }: { onBack: () => voi
   const { getAdjustedStocks } = useContext(UserContext);
 
   useEffect(() => {
-    const q = query(collection(db, "stocks"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
+    const fetchStocks = async () => {
+      try {
+        const q = query(collection(db, "stocks"));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+          import('../data').then(({ stocks: localStocks }) => {
+            setStocks(localStocks);
+          });
+          return;
+        }
+        const stocksData = snapshot.docs.map(doc => ({ symbol: doc.id, ...doc.data() } as Stock));
+        setStocks(stocksData);
+      } catch (error) {
+        console.error("Error fetching stocks:", error);
         import('../data').then(({ stocks: localStocks }) => {
-          setStocks(localStocks.map(s => ({ ...s, status: s.status || 'ACTIVE' })));
+          setStocks(localStocks);
         });
-        return;
       }
-      const stocksData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { symbol: doc.id, status: data.status || 'ACTIVE', ...data } as Stock;
-      });
-      setStocks(stocksData);
-    }, (error) => {
-      console.error("Error listening to stocks:", error);
-      import('../data').then(({ stocks: localStocks }) => {
-        setStocks(localStocks);
-      });
-    });
-    return () => unsubscribe();
+    };
+    fetchStocks();
   }, []);
 
   return (

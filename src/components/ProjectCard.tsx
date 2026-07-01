@@ -55,34 +55,26 @@ export default function ProjectCard({ project, onInvest }: { project: Project, o
         {/* Button & Progress bar */}
         <div>
           <div className="space-y-2 mb-3.5">
-            {project.status === 'ACTIVE' || !project.status ? (
-              <>
-                <button 
-                  onClick={onInvest}
-                  className="w-full bg-gradient-to-r from-[#c29b57] to-[#ebd5ad] hover:from-[#ebd5ad] hover:to-[#c29b57] text-black font-bold text-[12.5px] sm:text-[13.5px] py-2.5 rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer uppercase tracking-wider"
-                >
-                  Gửi tiền ngay
-                </button>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setShowContract(true)}
-                    className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[10px] py-2 rounded-xl transition-all uppercase tracking-wider"
-                  >
-                    Xem hợp đồng
-                  </button>
-                  <button 
-                    onClick={() => setShowContract(true)}
-                    className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[10px] py-2 rounded-xl transition-all uppercase tracking-wider"
-                  >
-                    Ký điện tử
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="w-full bg-zinc-800 text-zinc-500 text-[12.5px] sm:text-[13.5px] py-3 rounded-xl flex items-center justify-center font-bold border border-zinc-700/50 uppercase tracking-wider select-none">
-                ĐÃ ĐÓNG / ĐỦ VỐN
-              </div>
-            )}
+            <button 
+              onClick={onInvest}
+              className="w-full bg-gradient-to-r from-[#c29b57] to-[#ebd5ad] hover:from-[#ebd5ad] hover:to-[#c29b57] text-black font-bold text-[12.5px] sm:text-[13.5px] py-2.5 rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer uppercase tracking-wider"
+            >
+              Gửi tiền ngay
+            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowContract(true)}
+                className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[10px] py-2 rounded-xl transition-all uppercase tracking-wider"
+              >
+                Xem hợp đồng
+              </button>
+              <button 
+                onClick={() => setShowContract(true)}
+                className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[10px] py-2 rounded-xl transition-all uppercase tracking-wider"
+              >
+                Ký điện tử
+              </button>
+            </div>
           </div>
 
           {/* Progress */}

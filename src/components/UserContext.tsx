@@ -114,18 +114,6 @@ type UserContextType = {
   adminProjects: Project[];
   auditLog: AuditLogEntry[];
   updateProjectStatus: (projectId: string, newStatus: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED') => Promise<void>;
-  updateProjectDetails: (projectId: string, updates: Partial<Project>) => Promise<void>;
-  updateAllProjectsStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
-  standardProjects: Project[];
-  updateStandardProjectDetails: (projectId: string, updates: Partial<Project>) => Promise<void>;
-  updateAllStandardProjectsStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
-  standardStocks: Stock[];
-  casinoGames: CasinoGame[];
-  updateStockDetails: (symbol: string, updates: Partial<Stock>) => Promise<void>;
-  updateCasinoGameDetails: (id: string, updates: Partial<CasinoGame>) => Promise<void>;
-  updateAllStocksStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
-  updateAllCasinoGamesStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
-  updateAllVinfastStatus: (newStatus: 'ACTIVE' | 'CLOSED') => Promise<void>;
   portfolio: PortfolioItem[];
   orderHistory: Order[];
   placeOrder: (symbol: string, quantity: number, price: number, type: 'buy' | 'sell') => Promise<{ success: boolean, message?: string }>;
@@ -189,18 +177,6 @@ export const UserContext = createContext<UserContextType>({
   adminProjects: [],
   auditLog: [],
   updateProjectStatus: async () => {},
-  updateProjectDetails: async () => {},
-  updateAllProjectsStatus: async () => {},
-  standardProjects: [],
-  updateStandardProjectDetails: async () => {},
-  updateAllStandardProjectsStatus: async () => {},
-  standardStocks: [],
-  casinoGames: [],
-  updateStockDetails: async () => {},
-  updateCasinoGameDetails: async () => {},
-  updateAllStocksStatus: async () => {},
-  updateAllCasinoGamesStatus: async () => {},
-  updateAllVinfastStatus: async () => {},
   portfolio: [],
   orderHistory: [],
   placeOrder: async () => ({ success: false, message: 'Not implemented' }),
@@ -331,9 +307,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     { title: 'VF 9', kw: '300', profit: '1.8', minCapital: '200.000.000' },
   ]);
   const [portfolio, setPortfolioState] = useState<PortfolioItem[]>([]);
-  const [standardProjects, setStandardProjects] = useState<Project[]>([]);
-  const [standardStocks, setStandardStocks] = useState<Stock[]>([]);
-  const [casinoGames, setCasinoGames] = useState<CasinoGame[]>([]);
   const [orderHistory, setOrderHistoryState] = useState<Order[]>([]);
   const [keepNotes, setKeepNotesState] = useState<KeepNote[]>([]);
   const [adminProjects, setAdminProjectsState] = useState<Project[]>(() => [
@@ -421,6 +394,91 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       status: 'ACTIVE',
       targetCapital: 85000000000000,
       raisedCapital: 10200000000000
+    },
+    {
+      id: '6',
+      title: 'Sân vận động Trống Đồng Vinhomes Olympic',
+      imageUrl: 'https://vinhome.com.vn/wp-content/uploads/2025/12/san-van-dong-trong-dong-vinhomes-olympic-ha-noi-3.webp',
+      interestRate: '3.8%',
+      duration: '12 ngày',
+      minAmount: '2.0 Tỷ',
+      scale: '925.000 Tỷ VNĐ',
+      progress: 45,
+      category: 'Vinpearl',
+      durationDays: 12,
+      minInvestAmount: 2000000000,
+      interestRateValue: 0.038,
+      status: 'ACTIVE',
+      targetCapital: 925000000000000,
+      raisedCapital: 416250000000000
+    },
+    {
+      id: '7',
+      title: 'Siêu dự án Vinhomes Hạ Long Xanh',
+      imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg',
+      interestRate: '3.5%',
+      duration: '10 ngày',
+      minAmount: '1.8 Tỷ',
+      scale: '456.639 Tỷ VNĐ',
+      progress: 30,
+      category: 'Vinpearl',
+      durationDays: 10,
+      minInvestAmount: 1800000000,
+      interestRateValue: 0.035,
+      status: 'ACTIVE',
+      targetCapital: 456639000000000,
+      raisedCapital: 136991700000000
+    },
+    {
+      id: '8',
+      title: 'Quần thể Đông Tây Land Resort',
+      imageUrl: 'https://dongtayland.vn/wp-content/uploads/2025/09/Cover-2.jpg',
+      interestRate: '3.0%',
+      duration: '8 ngày',
+      minAmount: '1.5 Tỷ',
+      scale: '240.000 Tỷ VNĐ',
+      progress: 52,
+      category: 'Vinpearl',
+      durationDays: 8,
+      minInvestAmount: 1500000000,
+      interestRateValue: 0.030,
+      status: 'ACTIVE',
+      targetCapital: 240000000000000,
+      raisedCapital: 124800000000000
+    },
+    {
+      id: '9',
+      title: 'Khu phức hợp nghỉ dưỡng Làng Vân',
+      imageUrl: 'https://reb.vn/wp-content/uploads/2025/07/Khu-phuc-hop-du-lich-va-do-thi-nghi-duong-Lang-Van.jpg',
+      interestRate: '2.9%',
+      duration: '7 ngày',
+      minAmount: '1.2 Tỷ',
+      scale: '44.000 Tỷ VNĐ',
+      progress: 61,
+      category: 'Vinpearl',
+      durationDays: 7,
+      minInvestAmount: 1200000000,
+      interestRateValue: 0.029,
+      status: 'ACTIVE',
+      targetCapital: 44000000000000,
+      raisedCapital: 26840000000000
+    },
+    {
+      id: '10',
+      title: 'Đại đô thị sinh thái Dream City',
+      imageUrl: 'https://ktmt.vnmediacdn.com/images/2021/12/17/13-1639726425-a9.jpg',
+      interestRate: '3.1%',
+      duration: '9 ngày',
+      minAmount: '1.6 Tỷ',
+      scale: '66.000 Tỷ VNĐ',
+      progress: 38,
+      category: 'Vinpearl',
+      durationDays: 9,
+      minInvestAmount: 1600000000,
+      interestRateValue: 0.031,
+      status: 'ACTIVE',
+      targetCapital: 66000000000000,
+      raisedCapital: 25080000000000
     }
   ]);
   const [auditLog, setAuditLogState] = useState<AuditLogEntry[]>([]);
@@ -961,342 +1019,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProjectDetails = async (projectId: string, updates: Partial<Project>) => {
-    const updatedProjects = adminProjects.map(p => {
-      if (p.id === projectId) {
-        const merged = { ...p, ...updates };
-        
-        // Auto convert fields if value changed
-        if (updates.interestRateValue !== undefined) {
-          merged.interestRate = `${(updates.interestRateValue * 100).toFixed(1)}%`;
-        }
-        if (updates.minInvestAmount !== undefined) {
-          const num = updates.minInvestAmount;
-          if (num >= 1000000000) {
-            merged.minAmount = `${(num / 1000000000).toFixed(1)} Tỷ`;
-          } else {
-            merged.minAmount = `${(num / 1000000).toFixed(0)} Triệu`;
-          }
-        }
-        if (updates.durationDays !== undefined) {
-          merged.duration = `${updates.durationDays} ngày`;
-        }
-        return merged;
-      }
-      return p;
-    });
-
-    const projectTitle = adminProjects.find(p => p.id === projectId)?.title || '';
-    const changeLogs: string[] = [];
-    if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
-    if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(1)}%`);
-    if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
-    if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
-
-    const newLog: AuditLogEntry = {
-      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-      time: new Date().toLocaleString('vi-VN'),
-      adminName: displayName,
-      action: `Sửa dự án "${projectTitle}": ${changeLogs.join(', ')}`
-    };
-    const updatedLog = [newLog, ...auditLog];
-
-    setAdminProjectsState(updatedProjects);
-    setAuditLogState(updatedLog);
-
-    try {
-      await setDoc(doc(db, 'system', 'project_control'), {
-        projects: updatedProjects,
-        auditLog: updatedLog
-      }, { merge: true });
-    } catch (e) {
-      console.error("Error updating project details:", e);
-    }
-  };
-
-  const updateAllProjectsStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
-    const updatedProjects = adminProjects.map(p => ({ ...p, status: newStatus }));
-    const newLog: AuditLogEntry = {
-      id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-      time: new Date().toLocaleString('vi-VN'),
-      adminName: displayName,
-      action: `${newStatus === 'ACTIVE' ? 'Mở cửa' : 'Đóng cửa'} TẤT CẢ các dự án đầu tư`
-    };
-    const updatedLog = [newLog, ...auditLog];
-
-    setAdminProjectsState(updatedProjects);
-    setAuditLogState(updatedLog);
-
-    try {
-      await setDoc(doc(db, 'system', 'project_control'), {
-        projects: updatedProjects,
-        auditLog: updatedLog
-      }, { merge: true });
-    } catch (e) {
-      console.error("Error updating all projects status:", e);
-    }
-  };
-
-  // Real-time listener for standard projects
-  useEffect(() => {
-    const q = query(collection(db, "projects"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const projectsData = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return { 
-            id: doc.id, 
-            status: data.status || 'ACTIVE',
-            ...data 
-          } as Project;
-        });
-        projectsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-        setStandardProjects(projectsData);
-      } else {
-        import('../data').then(({ projects: localProjects }) => {
-          setStandardProjects(localProjects.map(p => ({ ...p, status: 'ACTIVE' })));
-        });
-      }
-    }, (err) => {
-      console.error("Error listening to standard projects:", err);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const updateStandardProjectDetails = async (projectId: string, updates: Partial<Project>) => {
-    const projectToUpdate = standardProjects.find(p => p.id === projectId);
-    if (!projectToUpdate) return;
-    
-    const merged = { ...projectToUpdate, ...updates } as any;
-    
-    // Auto convert formatting strings
-    if (updates.interestRateValue !== undefined) {
-      merged.interestRate = `${(updates.interestRateValue * 100).toFixed(2)} %`;
-    }
-    if (updates.minInvestAmount !== undefined) {
-      const num = updates.minInvestAmount;
-      if (num >= 1000000000) {
-        merged.minAmount = `${(num / 1000000000).toFixed(1)} Tỷ VNĐ`;
-      } else if (num >= 1000000) {
-        merged.minAmount = `${(num / 1000000).toFixed(0)}.000.000 VNĐ`;
-      } else {
-        merged.minAmount = `${num.toLocaleString('vi-VN')} VNĐ`;
-      }
-    }
-    if (updates.durationDays !== undefined) {
-      merged.duration = `${updates.durationDays * 1440} phút`;
-    }
-    
-    const docRef = doc(db, "projects", projectId);
-    try {
-      await setDoc(docRef, merged, { merge: true });
-      
-      const changeLogs: string[] = [];
-      if (updates.status !== undefined) changeLogs.push(`trạng thái -> ${updates.status}`);
-      if (updates.interestRateValue !== undefined) changeLogs.push(`lãi suất -> ${(updates.interestRateValue * 100).toFixed(2)}%`);
-      if (updates.minInvestAmount !== undefined) changeLogs.push(`tối thiểu -> ${updates.minInvestAmount.toLocaleString('vi-VN')} VNĐ`);
-      if (updates.title !== undefined) changeLogs.push(`tên -> ${updates.title}`);
-      if (updates.progress !== undefined) changeLogs.push(`tiến độ -> ${updates.progress}%`);
-      
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Sửa dự án Vinhomes "${projectToUpdate.title}": ${changeLogs.join(', ')}`
-      };
-      
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      
-      await setDoc(doc(db, 'system', 'project_control'), {
-        auditLog: updatedLog
-      }, { merge: true });
-    } catch (e) {
-      console.error("Error updating standard project:", e);
-      throw e;
-    }
-  };
-
-  const updateAllStandardProjectsStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
-    try {
-      const batch = writeBatch(db);
-      standardProjects.forEach(p => {
-        batch.update(doc(db, "projects", p.id), { status: newStatus });
-      });
-      await batch.commit();
-      
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Bật/Tắt đồng loạt tất cả dự án Vinhomes sang: ${newStatus}`
-      };
-      
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      await setDoc(doc(db, 'system', 'project_control'), {
-        auditLog: updatedLog
-      }, { merge: true });
-    } catch (e) {
-      console.error("Error toggling all standard projects status:", e);
-    }
-  };
-
-  // Real-time listener for standard stocks
-  useEffect(() => {
-    const q = query(collection(db, "stocks"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const stocksData = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return { 
-            symbol: doc.id, 
-            status: data.status || 'ACTIVE',
-            ...data 
-          } as Stock;
-        });
-        setStandardStocks(stocksData);
-      } else {
-        import('../data').then(({ stocks: localStocks }) => {
-          setStandardStocks(localStocks.map(s => ({ ...s, status: 'ACTIVE' })));
-        });
-      }
-    }, (err) => {
-      console.error("Error listening to stocks:", err);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Real-time listener for casino games
-  useEffect(() => {
-    const q = query(collection(db, "casinoGames"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const gamesData = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return { 
-            id: doc.id, 
-            status: data.status || 'ACTIVE',
-            ...data 
-          } as CasinoGame;
-        });
-        gamesData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-        setCasinoGames(gamesData);
-      } else {
-        import('../data').then(({ casinoGames: localGames }) => {
-          setCasinoGames(localGames.map(g => ({ ...g, status: 'ACTIVE' })));
-        });
-      }
-    }, (err) => {
-      console.error("Error listening to casinoGames:", err);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const updateStockDetails = async (symbol: string, updates: Partial<Stock>) => {
-    const docRef = doc(db, "stocks", symbol);
-    try {
-      await setDoc(docRef, updates, { merge: true });
-      
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Sửa cổ phiếu ${symbol}: ${JSON.stringify(updates)}`
-      };
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
-  };
-
-  const updateCasinoGameDetails = async (id: string, updates: Partial<CasinoGame>) => {
-    const docRef = doc(db, "casinoGames", id);
-    try {
-      await setDoc(docRef, updates, { merge: true });
-      
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Sửa game Casino ID ${id}: ${JSON.stringify(updates)}`
-      };
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
-  };
-
-  const updateAllStocksStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
-    try {
-      const batch = writeBatch(db);
-      standardStocks.forEach(s => {
-        batch.update(doc(db, "stocks", s.symbol), { status: newStatus });
-      });
-      await batch.commit();
-      
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Bật/Tắt đồng loạt tất cả Cổ phiếu sang: ${newStatus}`
-      };
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const updateAllCasinoGamesStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
-    try {
-      const batch = writeBatch(db);
-      casinoGames.forEach(g => {
-        batch.update(doc(db, "casinoGames", g.id), { status: newStatus });
-      });
-      await batch.commit();
-      
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Bật/Tắt đồng loạt tất cả game Casino sang: ${newStatus}`
-      };
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const updateAllVinfastStatus = async (newStatus: 'ACTIVE' | 'CLOSED') => {
-    try {
-      const updatedCars = cmsVinfast.map(car => ({ ...car, status: newStatus }));
-      await setDoc(doc(db, 'settings', 'cms_data'), { vinfast: updatedCars }, { merge: true });
-      setCmsVinfastState(updatedCars);
-
-      const newLog: AuditLogEntry = {
-        id: 'LG' + Math.floor(Math.random() * 900000 + 100000),
-        time: new Date().toLocaleString('vi-VN'),
-        adminName: displayName,
-        action: `Bật/Tắt đồng loạt tất cả xe VinFast sang: ${newStatus}`
-      };
-      const updatedLog = [newLog, ...auditLog];
-      setAuditLogState(updatedLog);
-      await setDoc(doc(db, 'system', 'project_control'), { auditLog: updatedLog }, { merge: true });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   // Real-time listener for Project Control
   useEffect(() => {
     const projectDocRef = doc(db, 'system', 'project_control');
@@ -1386,13 +1108,98 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           status: 'ACTIVE',
           targetCapital: 85000000000000,
           raisedCapital: 10200000000000
+        },
+        {
+          id: '6',
+          title: 'Sân vận động Trống Đồng Vinhomes Olympic',
+          imageUrl: 'https://vinhome.com.vn/wp-content/uploads/2025/12/san-van-dong-trong-dong-vinhomes-olympic-ha-noi-3.webp',
+          interestRate: '3.8%',
+          duration: '12 ngày',
+          minAmount: '2.0 Tỷ',
+          scale: '925.000 Tỷ VNĐ',
+          progress: 45,
+          category: 'Vinpearl',
+          durationDays: 12,
+          minInvestAmount: 2000000000,
+          interestRateValue: 0.038,
+          status: 'ACTIVE',
+          targetCapital: 925000000000000,
+          raisedCapital: 416250000000000
+        },
+        {
+          id: '7',
+          title: 'Siêu dự án Vinhomes Hạ Long Xanh',
+          imageUrl: 'https://vinhomehalongxanh.com.vn/wp-content/uploads/2026/02/Vinhomes-Ha-Long-Xanh-scaled.jpg',
+          interestRate: '3.5%',
+          duration: '10 ngày',
+          minAmount: '1.8 Tỷ',
+          scale: '456.639 Tỷ VNĐ',
+          progress: 30,
+          category: 'Vinpearl',
+          durationDays: 10,
+          minInvestAmount: 1800000000,
+          interestRateValue: 0.035,
+          status: 'ACTIVE',
+          targetCapital: 456639000000000,
+          raisedCapital: 136991700000000
+        },
+        {
+          id: '8',
+          title: 'Quần thể Đông Tây Land Resort',
+          imageUrl: 'https://dongtayland.vn/wp-content/uploads/2025/09/Cover-2.jpg',
+          interestRate: '3.0%',
+          duration: '8 ngày',
+          minAmount: '1.5 Tỷ',
+          scale: '240.000 Tỷ VNĐ',
+          progress: 52,
+          category: 'Vinpearl',
+          durationDays: 8,
+          minInvestAmount: 1500000000,
+          interestRateValue: 0.030,
+          status: 'ACTIVE',
+          targetCapital: 240000000000000,
+          raisedCapital: 124800000000000
+        },
+        {
+          id: '9',
+          title: 'Khu phức hợp nghỉ dưỡng Làng Vân',
+          imageUrl: 'https://reb.vn/wp-content/uploads/2025/07/Khu-phuc-hop-du-lich-va-do-thi-nghi-duong-Lang-Van.jpg',
+          interestRate: '2.9%',
+          duration: '7 ngày',
+          minAmount: '1.2 Tỷ',
+          scale: '44.000 Tỷ VNĐ',
+          progress: 61,
+          category: 'Vinpearl',
+          durationDays: 7,
+          minInvestAmount: 1200000000,
+          interestRateValue: 0.029,
+          status: 'ACTIVE',
+          targetCapital: 44000000000000,
+          raisedCapital: 26840000000000
+        },
+        {
+          id: '10',
+          title: 'Đại đô thị sinh thái Dream City',
+          imageUrl: 'https://ktmt.vnmediacdn.com/images/2021/12/17/13-1639726425-a9.jpg',
+          interestRate: '3.1%',
+          duration: '9 ngày',
+          minAmount: '1.6 Tỷ',
+          scale: '66.000 Tỷ VNĐ',
+          progress: 38,
+          category: 'Vinpearl',
+          durationDays: 9,
+          minInvestAmount: 1600000000,
+          interestRateValue: 0.031,
+          status: 'ACTIVE',
+          targetCapital: 66000000000000,
+          raisedCapital: 25080000000000
         }
       ];
 
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.projects) {
-          if (data.projects.length !== 5 || data.projects[0]?.title !== 'Vinpearl Harbour Nha Trang') {
+          if (data.projects.length !== 10 || data.projects[0]?.title !== 'Vinpearl Harbour Nha Trang') {
             setDoc(projectDocRef, { projects: freshProjects }, { merge: true });
             setAdminProjectsState(freshProjects);
           } else {
@@ -2174,20 +1981,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateCmsBanners,
       updateCmsVinfast,
       adminProjects,
-      standardProjects,
-      standardStocks,
-      casinoGames,
       auditLog,
       updateProjectStatus,
-      updateProjectDetails,
-      updateAllProjectsStatus,
-      updateStandardProjectDetails,
-      updateAllStandardProjectsStatus,
-      updateStockDetails,
-      updateCasinoGameDetails,
-      updateAllStocksStatus,
-      updateAllCasinoGamesStatus,
-      updateAllVinfastStatus,
       portfolio,
       orderHistory,
       placeOrder,

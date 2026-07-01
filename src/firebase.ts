@@ -9,11 +9,23 @@ import {
   doc 
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 import firebaseConfig from "../firebase-applet-config.json";
 import { projects, stocks, casinoGames } from "./data";
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+let storageInstance: any = null;
+try {
+  storageInstance = getStorage(app);
+} catch (e) {
+  console.warn("Firebase Storage is not available:", e);
+}
+export { storageInstance as storage };
+
+// ✅ HÀM TẠO ROOM ID — DÙNG CHUNG CHO CẢ USER VÀ ADMIN
+export const getChatRoomId = (userId: string): string => userId;
 
 // Initialize Firestore with robust multi-tab persistent local cache
 export const db = initializeFirestore(app, {

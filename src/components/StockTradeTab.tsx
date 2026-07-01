@@ -1,32 +1,35 @@
-import { Heart, Wallet, Briefcase } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useState, useContext } from 'react';
 import { Stock } from '../types';
 import { UserContext } from './UserContext';
 
+const PROFIT_RATIOS = [0.05, 0.10, 0.20, 0.30];
+const TIMES_1 = [1, 2, 4, 6];
+const PROFIT_LEVELS = [0.10, 0.20, 0.30];
+const TIMES_2 = [4, 6];
+
 export default function StockTradeTab({ stock }: { stock: Stock }) {
-  const [quantity, setQuantity] = useState<number>(0);
-  const { placeOrder, balance, portfolio } = useContext(UserContext);
+  const [profitRatio, setProfitRatio] = useState<number>(PROFIT_RATIOS[0]);
+  const [time1, setTime1] = useState<number>(TIMES_1[0]);
+  const [profitLevel, setProfitLevel] = useState<number>(PROFIT_LEVELS[0]);
+  const [time2, setTime2] = useState<number>(TIMES_2[0]);
+  const [amount, setAmount] = useState<number>(0);
+  const { placeOrder } = useContext(UserContext);
 
   const isPositive = stock.change >= 0;
-  
-  // Find current holding of this stock
-  const currentHolding = portfolio.find(p => p.symbol === stock.symbol)?.quantity || 0;
-  
-  const estimatedCost = quantity * stock.price;
+
+  // Calculate estimated return.
+  const estimatedReturn = amount + (amount * profitRatio);
 
   const handleOrder = async (type: 'buy' | 'sell') => {
-    if (stock.status === 'CLOSED') {
-      alert("Cổ phiếu này đã bị tạm ngừng giao dịch.");
-      return;
-    }
-    if (quantity <= 0) {
-        alert("Vui lòng nhập số lượng hợp lệ.");
+    const quantity = Math.floor(amount / stock.price);
+    if (quantity === 0) {
+        alert("Số tiền đầu tư không đủ để mua cổ phiếu.");
         return;
     }
     const result = await placeOrder(stock.symbol, quantity, stock.price, type);
     if (result.success) {
         alert("Giao dịch thành công!");
-        setQuantity(0); // Reset after success
     } else {
         alert(result.message || "Giao dịch thất bại.");
     }
@@ -52,79 +55,130 @@ export default function StockTradeTab({ stock }: { stock: Stock }) {
         </button>
       </div>
 
-      {/* Account Info Row */}
-      <div className="bg-[#1e1e1e] border border-white/5 rounded-xl p-5 mb-4 grid grid-cols-2 gap-4">
+      <div className="bg-[#1e1e1e] border border-white/5 rounded-xl p-5 mb-4 space-y-6">
+        
+        {/* Tỷ lệ lợi nhuận */}
         <div>
-          <div className="text-[12px] text-zinc-400 mb-1 flex items-center gap-1">
-            <Wallet className="w-3.5 h-3.5" /> Số dư khả dụng
-          </div>
-          <div className="text-[14px] font-bold text-white">
-            {new Intl.NumberFormat('vi-VN').format(balance)} VND
+          <div className="text-[13px] text-zinc-300 mb-3">Tỷ lệ lợi nhuận</div>
+          <div className="flex gap-2">
+            {PROFIT_RATIOS.map(ratio => (
+              <button 
+                key={ratio}
+                onClick={() => setProfitRatio(ratio)}
+                className={`flex-1 py-2 rounded-lg text-[13px] font-medium transition-colors ${profitRatio === ratio ? 'bg-[#c29b57] text-black' : 'bg-[#2a2a2a] text-zinc-400 hover:bg-[#333]'}`}
+              >
+                {ratio * 100}%
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* Thời gian */}
         <div>
-          <div className="text-[12px] text-zinc-400 mb-1 flex items-center gap-1">
-            <Briefcase className="w-3.5 h-3.5" /> Số lượng đang nắm giữ
-          </div>
-          <div className="text-[14px] font-bold text-[#c29b57]">
-            {new Intl.NumberFormat('vi-VN').format(currentHolding)} cổ phiếu
+          <div className="text-[13px] text-zinc-300 mb-3">Thời gian</div>
+          <div className="flex gap-2">
+            {TIMES_1.map(t => (
+              <button 
+                key={t}
+                onClick={() => setTime1(t)}
+                className={`flex-1 py-2 rounded-lg text-[13px] font-medium transition-colors ${time1 === t ? 'bg-[#c29b57] text-black' : 'bg-[#2a2a2a] text-zinc-400 hover:bg-[#333]'}`}
+              >
+                {t} Phút
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* Mức lợi nhuận */}
+        <div>
+          <div className="text-[13px] text-zinc-300 mb-3">Mức lợi nhuận</div>
+          <div className="flex gap-2">
+            {PROFIT_LEVELS.map(level => (
+              <button 
+                key={level}
+                onClick={() => setProfitLevel(level)}
+                className={`flex-1 py-2 rounded-lg text-[13px] font-medium transition-colors ${profitLevel === level ? 'bg-[#c29b57] text-black' : 'bg-[#2a2a2a] text-zinc-400 hover:bg-[#333]'}`}
+              >
+                {level * 100}%
+              </button>
+            ))}
+            <div className="flex-1"></div> {/* Spacer to align left */}
+          </div>
+        </div>
+
+        {/* Thời gian đầu tư */}
+        <div>
+          <div className="text-[13px] text-zinc-300 mb-3">Thời gian đầu tư</div>
+          <div className="flex gap-2">
+            {TIMES_2.map(t => (
+              <button 
+                key={t}
+                onClick={() => setTime2(t)}
+                className={`flex-1 py-2 rounded-lg text-[13px] font-medium transition-colors ${time2 === t ? 'bg-[#c29b57] text-black' : 'bg-[#2a2a2a] text-zinc-400 hover:bg-[#333]'}`}
+              >
+                {t} Phút
+              </button>
+            ))}
+            <div className="flex-1"></div>
+            <div className="flex-1"></div>
+          </div>
+        </div>
+
       </div>
 
-      {/* Số lượng mua bán */}
+      {/* Số tiền đầu tư */}
       <div className="bg-[#1e1e1e] border border-white/5 rounded-xl p-5 mb-24">
-        <div className="text-[13px] text-zinc-300 mb-4 flex justify-between">
-          <span>Số lượng cổ phiếu (đặt lệnh)</span>
-          <span className="text-zinc-500">Giá: {new Intl.NumberFormat('vi-VN').format(stock.price)} VND/CP</span>
-        </div>
+        <div className="text-[13px] text-zinc-300 mb-4">Số tiền đầu tư</div>
         
+        {/* Slider Mockup */}
+        <div className="w-full h-1 bg-black rounded-full mb-6 relative">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#c29b57] rounded-full border-2 border-[#1e1e1e]"></div>
+          <input 
+            type="range" 
+            min="0" 
+            max="10000000" 
+            step="100000"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            className="absolute inset-0 w-full opacity-0 cursor-pointer"
+          />
+        </div>
+
         {/* Input */}
         <div className="relative">
           <input 
             type="text" 
-            value={new Intl.NumberFormat('vi-VN').format(quantity)}
+            value={new Intl.NumberFormat('vi-VN').format(amount)}
             onChange={(e) => {
               const val = e.target.value.replace(/\D/g, '');
-              setQuantity(Number(val));
+              setAmount(Number(val));
             }}
             className="w-full bg-[#121212] border border-white/10 rounded-xl py-3 pl-4 pr-16 text-white font-bold text-[16px] outline-none focus:border-[#c29b57] transition-colors"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-medium text-[14px]">
-            Cổ phiếu
+            VND
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-          <span className="text-[13px] text-zinc-400">Tổng giá trị ước tính:</span>
-          <span className="text-[16px] font-bold text-[#c29b57]">
-            {new Intl.NumberFormat('vi-VN').format(estimatedCost)} VND
-          </span>
+        <div className="text-right mt-3 text-[#c29b57] text-[13px] font-medium">
+          ≈ {new Intl.NumberFormat('vi-VN').format(estimatedReturn)} VND
         </div>
       </div>
       
       {/* Trading Actions */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#121212] border-t border-white/5 flex gap-4">
-        {stock.status === 'CLOSED' ? (
-          <div className="w-full py-4 bg-zinc-800 text-zinc-500 font-bold rounded-xl flex items-center justify-center border border-zinc-700/50 uppercase tracking-wider select-none">
-            TẠM NGỪNG GIAO DỊCH
-          </div>
-        ) : (
-          <>
-            <button 
-                onClick={() => handleOrder('buy')}
-                className="flex-1 py-4 bg-[#10b981] hover:bg-[#059669] text-white font-bold rounded-xl transition-colors cursor-pointer"
-            >
-                Mua
-            </button>
-            <button 
-                onClick={() => handleOrder('sell')}
-                className="flex-1 py-4 bg-[#f43f5e] hover:bg-[#e11d48] text-white font-bold rounded-xl transition-colors cursor-pointer"
-            >
-                Bán
-            </button>
-          </>
-        )}
+        <button 
+            onClick={() => handleOrder('buy')}
+            className="flex-1 py-4 bg-[#10b981] text-white font-bold rounded-xl"
+        >
+            Mua
+        </button>
+        <button 
+            onClick={() => handleOrder('sell')}
+            className="flex-1 py-4 bg-[#f43f5e] text-white font-bold rounded-xl"
+        >
+            Bán
+        </button>
       </div>
     </div>
   );

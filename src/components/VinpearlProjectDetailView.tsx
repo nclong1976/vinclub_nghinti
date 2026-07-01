@@ -31,6 +31,11 @@ export default function VinpearlProjectDetailView({ projectId, onBack, onInvest 
     if (title.includes('Giga-Factory')) return 'Cát Hải, Hải Phòng, Việt Nam';
     if (title.includes('Eco-Retreat')) return 'Phú Quốc, Kiên Giang, Việt Nam';
     if (title.includes('Smart City Hub')) return 'Hà Nội & TP. Hồ Chí Minh, Việt Nam';
+    if (title.includes('Olympic')) return 'Mỹ Đình, Hà Nội, Việt Nam';
+    if (title.includes('Hạ Long Xanh')) return 'Quảng Yên & Hạ Long, Quảng Ninh, Việt Nam';
+    if (title.includes('Đông Tây Land')) return 'Phú Quốc, Kiên Giang, Việt Nam';
+    if (title.includes('Làng Vân')) return 'Liên Chiểu, Đà Nẵng, Việt Nam';
+    if (title.includes('Dream City')) return 'Văn Giang, Hưng Yên, Việt Nam';
     return 'Việt Nam';
   };
 
@@ -49,6 +54,21 @@ export default function VinpearlProjectDetailView({ projectId, onBack, onInvest 
     }
     if (title.includes('Smart City Hub')) {
       return 'Mạng lưới trạm sạc siêu nhanh và trung tâm dịch vụ xe điện thông minh tích hợp AI trên khắp các đại lộ huyết mạch cả nước, đón đầu xu thế chuyển dịch năng lượng xanh toàn cầu, mở ra đặc quyền đầu tư sinh lời vượt bậc từ doanh thu hạ tầng xanh.';
+    }
+    if (title.includes('Olympic')) {
+      return 'Dự án Sân vận động Trống Đồng Vinhomes Olympic Hà Nội là công trình biểu tượng thể thao văn hóa tầm cỡ châu lục. Với kiến trúc hình trống đồng Đông Sơn cách điệu hoành tráng, tích hợp công nghệ mái vòm di động tự động và hệ thống sinh thái dịch vụ, khách sạn cao cấp, dự án mang đến tiềm năng phát triển vượt bậc và doanh thu khai thác khổng lồ.';
+    }
+    if (title.includes('Hạ Long Xanh')) {
+      return 'Siêu đô thị phức hợp Vinhomes Hạ Long Xanh với quy mô lên tới hàng nghìn hecta bên bờ kỳ quan thiên nhiên thế giới. Tích hợp trung tâm hội nghị quốc tế, resort nghỉ dưỡng thương hiệu Vinpearl, công viên chủ đề VinWonders và sân golf chuẩn PGA quốc tế, tạo lập biểu tượng du lịch - đô thị đẳng cấp toàn cầu.';
+    }
+    if (title.includes('Đông Tây Land')) {
+      return 'Quần thể nghỉ dưỡng sinh thái cao cấp Đông Tây Land Resort tại trung tâm đảo ngọc Phú Quốc. Dự án hội tụ các căn biệt thự hướng biển xa xỉ, dòng sông lười uốn lượn phong cách nhiệt đới cùng hệ sinh thái dịch vụ chăm sóc sức khỏe và ẩm thực Michelin thượng hạng.';
+    }
+    if (title.includes('Làng Vân')) {
+      return 'Khu phức hợp du lịch và đô thị nghỉ dưỡng cao cấp Làng Vân - Đà Nẵng tọa lạc tại chân đèo Hải Vân hùng vĩ hướng thẳng vịnh Đà Nẵng tuyệt mỹ. Quần thể gồm khách sạn 5 sao sang trọng, tổ hợp biệt thự biển, bến du thuyền sang trọng và khu dịch vụ vui chơi giải trí quốc tế khép kín bậc nhất miền Trung.';
+    }
+    if (title.includes('Dream City')) {
+      return 'Đại đô thị sinh thái Dream City kiến tạo không gian sống đỉnh cao hòa cùng thiên nhiên tươi mát. Sở hữu hồ tạo sóng lớn nhất thế giới, đại lộ ánh sáng lộng lẫy và phong cách kiến trúc châu Âu tân cổ điển sang trọng, mang đến chuỗi giá trị đầu tư và an cư phồn thịnh vượt thời gian.';
     }
     return 'Dự án đầu tư phát triển bất động sản nghỉ dưỡng và hạ tầng công nghệ thuộc hệ sinh thái Vingroup. Cam kết lợi nhuận hấp dẫn cùng các đặc quyền ưu đãi vượt trội dành riêng cho các cổ đông và nhà đầu tư chiến lược.';
   };

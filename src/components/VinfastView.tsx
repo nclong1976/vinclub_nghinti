@@ -48,9 +48,7 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
     dailyYield: `${car.profit}%`,
     dailyYieldValue: parseFloat(car.profit) / 100,
     minInvest: parseFloat(car.minCapital.replace(/\./g, '')),
-    desc: `Dòng xe ${car.title} hiện đại.`,
-    status: car.status || 'ACTIVE',
-    progress: car.progress !== undefined ? car.progress : 100
+    desc: `Dòng xe ${car.title} hiện đại.`
   }));
 
   const selectedCar = vinfastCars.find(c => c.id === activeCarId) || vinfastCars[0];
@@ -70,12 +68,11 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
     duration: '365 ngày',
     minAmount: formatCurrency(selectedCar.minInvest),
     scale: '150.000+ Tỷ VNĐ',
-    progress: selectedCar.progress,
+    progress: 100,
     category: 'VINFAST',
     durationDays: 365,
     minInvestAmount: selectedCar.minInvest,
-    interestRateValue: selectedCar.dailyYieldValue,
-    status: selectedCar.status
+    interestRateValue: selectedCar.dailyYieldValue
   };
 
   return (
@@ -147,20 +144,6 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
                 </div>
               </div>
 
-              {/* Progress Bar */}
-              <div className="bg-zinc-900 border border-zinc-850 rounded-xl p-3.5 space-y-2">
-                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
-                  <span className="text-zinc-500">Tiến độ huy động vốn</span>
-                  <span className="text-white">{selectedCar.progress}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#c29b57] to-[#ebd5ad] rounded-full transition-all duration-500" 
-                    style={{ width: `${selectedCar.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-
               {/* Investment summary card */}
               <div className="bg-zinc-900/80 border border-zinc-850 rounded-xl p-3 flex justify-between items-center">
                 <div className="space-y-0.5">
@@ -174,36 +157,28 @@ export default function VinfastView({ onBack }: VinfastViewProps) {
               </div>
 
               {/* Primary CTA */}
-              <div className="space-y-3">
-                {selectedCar.status === 'ACTIVE' ? (
-                  <>
-                    <button 
-                      onClick={() => setShowInvestModal(true)}
-                      className="w-full bg-[#c29b57] hover:bg-[#ebd5ad] text-black font-bold text-[12px] py-3.5 rounded-xl flex items-center justify-center gap-2 tracking-widest uppercase transition-all duration-300 active:scale-[0.98] shadow-[0_4px_20px_rgba(194,155,87,0.15)] cursor-pointer"
-                    >
-                      ĐẦU TƯ NGAY
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setShowContractPreview(true)}
-                        className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[11px] py-2 rounded-xl transition-all uppercase tracking-wider cursor-pointer"
-                      >
-                        Xem hợp đồng
-                      </button>
-                      <button 
-                        onClick={() => setShowContractPreview(true)}
-                        className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[11px] py-2 rounded-xl transition-all uppercase tracking-wider cursor-pointer"
-                      >
-                        Ký điện tử
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full bg-zinc-800 text-zinc-500 text-[12px] py-3.5 rounded-xl flex items-center justify-center font-bold border border-zinc-700/50 uppercase tracking-wider select-none">
-                    ĐÃ ĐÓNG / ĐỦ VỐN
-                  </div>
-                )}
+              <div className="space-y-2">
+                <button 
+                  onClick={() => setShowInvestModal(true)}
+                  className="w-full bg-[#c29b57] hover:bg-[#ebd5ad] text-black font-bold text-[12px] py-3.5 rounded-xl flex items-center justify-center gap-2 tracking-widest uppercase transition-all duration-300 active:scale-[0.98] shadow-[0_4px_20px_rgba(194,155,87,0.15)]"
+                >
+                  ĐẦU TƯ NGAY
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setShowContractPreview(true)}
+                    className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[11px] py-2 rounded-xl transition-all uppercase tracking-wider"
+                  >
+                    Xem hợp đồng
+                  </button>
+                  <button 
+                    onClick={() => setShowContractPreview(true)}
+                    className="flex-1 border border-[#c29b57] text-[#c29b57] hover:bg-[#c29b57]/10 font-bold text-[11px] py-2 rounded-xl transition-all uppercase tracking-wider"
+                  >
+                    Ký điện tử
+                  </button>
+                </div>
               </div>
             </div>
           </div>

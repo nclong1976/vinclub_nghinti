@@ -19,12 +19,11 @@ export default function VinpearlInvestView({ projectId, onBack }: VinpearlInvest
   // Look up the selected project, or default to the first project in adminProjects
   const project = adminProjects.find(p => p.id === projectId) || adminProjects[0];
 
-  const investmentAmount = project?.minInvestAmount || 1200000000;
-
   const formatCurrency = (val: number) => {
     return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ";
   };
 
+  const investmentAmount = project?.minInvestAmount || 1200000000;
   const canInvest = balance >= investmentAmount;
 
   const handleProceedToSign = () => {
@@ -177,17 +176,15 @@ export default function VinpearlInvestView({ projectId, onBack }: VinpearlInvest
             </div>
 
             {/* Amount Input area */}
-            {/* Amount display area */}
             <div className="mb-6">
               <label className="text-[12px] font-bold text-[#334155] uppercase tracking-wider mb-2 block">SỐ TIỀN ĐẦU TƯ</label>
-              
               <div className="flex items-end justify-between border-b border-[#E2E8F0] pb-2 mb-2">
                 <span className="font-['Montserrat'] text-[28px] md:text-[32px] font-bold text-[#001839]">
                   {investmentAmount.toLocaleString('vi-VN')}
                 </span>
                 <span className="font-['Montserrat'] text-[16px] md:text-[18px] font-bold text-[#334155] mb-1">VNĐ</span>
               </div>
-              <p className="text-[#747780] text-[13px]">Số tiền cố định theo cài đặt hệ thống ({project?.minAmount || formatCurrency(investmentAmount)})</p>
+              <p className="text-[#747780] text-[13px]">Tối thiểu: {investmentAmount.toLocaleString('vi-VN')} VNĐ ({project.minAmount})</p>
             </div>
 
             {/* Funding Source */}

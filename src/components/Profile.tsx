@@ -14,7 +14,7 @@ import AccountVerification from './AccountVerification';
 import GoogleDriveSync from './GoogleDriveSync';
 import KeepNotes from './KeepNotes';
 
-export default function Profile({ onBack, onHome, initialSubView }: { onBack: () => void, onHome: () => void, initialSubView?: string | null }) {
+export default function Profile({ onBack, onHome, initialSubView, onNavigateToAdmin }: { onBack: () => void, onHome: () => void, initialSubView?: string | null, onNavigateToAdmin?: () => void }) {
   const { 
     displayName, 
     avatarImage, 
@@ -100,14 +100,18 @@ export default function Profile({ onBack, onHome, initialSubView }: { onBack: ()
     { id: 'keep_notes', icon: <FileText className="w-5 h-5 text-amber-500" />, label: 'Sổ tay Google Keep' },
   ];
 
-
+  if (isAdmin && onNavigateToAdmin) {
+    menuItems.push({ id: 'admin_console', icon: <ShieldCheck className="w-5 h-5 text-amber-500" />, label: 'Bảng Quản trị Admin' });
+  }
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('vi-VN').format(val) + ' VNĐ';
   };
 
   const handleMenuClick = (id: string) => {
-    if (id === 'profile_info') {
+    if (id === 'admin_console') {
+      onNavigateToAdmin && onNavigateToAdmin();
+    } else if (id === 'profile_info') {
       setIsEditProfileOpen(true);
     } else {
       setActiveSubView(id);

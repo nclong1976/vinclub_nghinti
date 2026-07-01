@@ -47,8 +47,6 @@ export interface Stock {
   change: number;
   changePercent: number;
   volume: string;
-  status?: 'ACTIVE' | 'CLOSED';
-  winMode?: boolean;
 }
 
 export interface PortfolioItem {
@@ -70,9 +68,6 @@ export interface CasinoGame {
   id: string;
   title: string;
   imageUrl: string;
-  status?: 'ACTIVE' | 'CLOSED';
-  payoutRatio?: '1:1' | '1:1.2' | '1:1.5';
-  schedule?: string[];
 }
 
 export interface ChartDataPoint {
