@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowchart - Admin Gửi Tin Nhắn Xuống Dòng | VinClub Admin v2.0</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f4f8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+  .header {
+    background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    color: white;
+    padding: 16px 32px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(26,115,232,0.35);
+    width: 100%;
+    max-width: 680px;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+  .header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+  .chart-wrapper {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 40px 30px 50px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+    width: 100%;
+    max-width: 680px;
+  }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .footnote {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #555;
+    font-style: italic;
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 8px 16px;
+    border-radius: 0 8px 8px 0;
+    max-width: 680px;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>&#9654; VinClub Admin v2.0 &mdash; Bảng Quản Trị</h1>
+  <p>Flowchart: Luồng Admin Gửi Tin Nhắn Xuống Dòng</p>
+</div>
+<div class="chart-wrapper">
+<svg viewBox="0 0 600 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="sh"><feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.15)"/></filter>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#1a73e8"/></marker>
+    <marker id="arrG" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#43a047"/></marker>
+    <marker id="arrR" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#e53935"/></marker>
+    <marker id="arrO" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#f9a825"/></marker>
+  </defs>
+
+  <!-- START -->
+  <ellipse cx="300" cy="45" rx="95" ry="30" fill="#1a73e8" stroke="#0d47a1" stroke-width="2" filter="url(#sh)"/>
+  <text x="300" y="50" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Bắt đầu luồng</text>
+
+  <line x1="300" y1="75" x2="300" y2="110" stroke="#1a73e8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ACTION 1 -->
+  <rect x="170" y="112" width="260" height="50" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" filter="url(#sh)"/>
+  <text x="300" y="133" text-anchor="middle" fill="#0d47a1" font-size="13" font-weight="600">&#9997; Admin nhập phản hồi</text>
+  <text x="300" y="152" text-anchor="middle" fill="#666" font-size="11">Soạn nội dung trong ô chat</text>
+
+  <line x1="300" y1="162" x2="300" y2="197" stroke="#1a73e8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ACTION 2 - loop target -->
+  <rect x="170" y="199" width="260" height="50" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" filter="url(#sh)"/>
+  <text x="285" y="220" text-anchor="middle" fill="#0d47a1" font-size="13" font-weight="600">Đang gõ...</text>
+  <circle cx="335" cy="217" r="4" fill="#1a73e8"><animate attributeName="opacity" values="1;0.2;1" dur="1s" begin="0s" repeatCount="indefinite"/></circle>
+  <circle cx="347" cy="217" r="4" fill="#1a73e8"><animate attributeName="opacity" values="1;0.2;1" dur="1s" begin="0.33s" repeatCount="indefinite"/></circle>
+  <circle cx="359" cy="217" r="4" fill="#1a73e8"><animate attributeName="opacity" values="1;0.2;1" dur="1s" begin="0.66s" repeatCount="indefinite"/></circle>
+  <text x="300" y="239" text-anchor="middle" fill="#666" font-size="11">Hệ thống nhận diện phím bấm</text>
+
+  <line x1="300" y1="249" x2="300" y2="294" stroke="#1a73e8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- DECISION 1 -->
+  <polygon points="300,296 420,346 300,396 180,346" fill="#fff9c4" stroke="#f9a825" stroke-width="2" filter="url(#sh)"/>
+  <text x="300" y="341" text-anchor="middle" fill="#e65100" font-size="13" font-weight="bold">Nhấn phím Enter?</text>
+  <text x="300" y="358" text-anchor="middle" fill="#e65100" font-size="10">[keyCode === 13]</text>
+
+  <!-- YES right -->
+  <line x1="420" y1="346" x2="490" y2="346" stroke="#43a047" stroke-width="2" marker-end="url(#arrG)"/>
+  <text x="453" y="338" text-anchor="middle" fill="#43a047" font-size="11" font-weight="600">Đúng ✓</text>
+  <rect x="490" y="321" width="80" height="50" rx="8" fill="#e8f5e9" stroke="#43a047" stroke-width="2" filter="url(#sh)"/>
+  <text x="530" y="342" text-anchor="middle" fill="#2e7d32" font-size="11" font-weight="600">Gửi tin</text>
+  <text x="530" y="356" text-anchor="middle" fill="#2e7d32" font-size="11" font-weight="600">nhắn đi &#128394;</text>
+
+  <line x1="530" y1="371" x2="530" y2="416" stroke="#43a047" stroke-width="2" marker-end="url(#arrG)"/>
+  <ellipse cx="530" cy="434" rx="55" ry="25" fill="#43a047" stroke="#2e7d32" stroke-width="2" filter="url(#sh)"/>
+  <text x="530" y="430" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Hoàn thành</text>
+  <text x="530" y="445" text-anchor="middle" fill="white" font-size="10">&#10003; Kết thúc</text>
+
+  <!-- NO down -->
+  <line x1="300" y1="396" x2="300" y2="431" stroke="#e53935" stroke-width="2" marker-end="url(#arrR)"/>
+  <text x="318" y="417" fill="#e53935" font-size="11" font-weight="600">Sai ✗</text>
+
+  <!-- DECISION 2 -->
+  <polygon points="300,433 410,478 300,523 190,478" fill="#fce4ec" stroke="#e91e63" stroke-width="2" filter="url(#sh)"/>
+  <text x="300" y="473" text-anchor="middle" fill="#880e4f" font-size="13" font-weight="bold">Nhấn Shift + Enter?</text>
+  <text x="300" y="489" text-anchor="middle" fill="#880e4f" font-size="10">[shiftKey + Enter]</text>
+
+  <!-- YES right -->
+  <line x1="410" y1="478" x2="478" y2="478" stroke="#43a047" stroke-width="2" marker-end="url(#arrG)"/>
+  <text x="443" y="470" text-anchor="middle" fill="#43a047" font-size="11" font-weight="600">Đúng ✓</text>
+  <rect x="478" y="453" width="92" height="50" rx="8" fill="#e8f5e9" stroke="#43a047" stroke-width="2" filter="url(#sh)"/>
+  <text x="524" y="473" text-anchor="middle" fill="#2e7d32" font-size="11" font-weight="600">Thêm ký tự</text>
+  <text x="524" y="487" text-anchor="middle" fill="#2e7d32" font-size="11" font-weight="600">xuống dòng &#8629;</text>
+
+  <!-- Loop back to Action 2 -->
+  <path d="M 524 503 L 524 560 L 130 560 L 130 224 L 170 224" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arr)"/>
+  <text x="328" y="576" text-anchor="middle" fill="#1a73e8" font-size="11" font-style="italic">&#8635; Quay lại tiếp tục gõ</text>
+
+  <!-- NO down D2 -->
+  <line x1="300" y1="523" x2="300" y2="558" stroke="#f9a825" stroke-width="2" marker-end="url(#arrO)"/>
+  <text x="318" y="544" fill="#e65100" font-size="11" font-weight="600">Sai ✗</text>
+
+  <!-- Loop back to Decision 1 -->
+  <path d="M 300 560 L 300 600 L 90 600 L 90 346 L 180 346" stroke="#f9a825" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrO)"/>
+  <text x="195" y="616" text-anchor="middle" fill="#e65100" font-size="11" font-style="italic">&#8635; Chờ phím tiếp theo</text>
+</svg>
+</div>
+<div class="footnote">
+  &#128161; <strong>Ghi chú:</strong> Nhấn <kbd style="background:#eee;border:1px solid #bbb;padding:1px 6px;border-radius:3px;font-style:normal">Shift + Enter</kbd> để xuống dòng &nbsp;|&nbsp; Nhấn <kbd style="background:#eee;border:1px solid #bbb;padding:1px 6px;border-radius:3px;font-style:normal">Enter</kbd> để gửi tin nhắn
+</div>
+</body>
+</html>
